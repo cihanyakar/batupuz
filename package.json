@@ -1,0 +1,15 @@
+{
+  "name": "batupuz",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "start": "node server/index.js",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "vitest": "^3.0.0"
+  },
+  "dependencies": {
+    "ws": "^8.16.0"
+  }
+}

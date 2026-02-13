@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Batupuz - Anime Gem Merging</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            background:
+                radial-gradient(ellipse at 20% 50%, rgba(90, 30, 140, 0.4) 0%, transparent 50%),
+                radial-gradient(ellipse at 80% 50%, rgba(30, 60, 140, 0.4) 0%, transparent 50%),
+                radial-gradient(ellipse at 50% 0%, rgba(120, 40, 160, 0.3) 0%, transparent 40%),
+                radial-gradient(ellipse at 50% 100%, rgba(20, 10, 60, 0.8) 0%, transparent 50%),
+                linear-gradient(180deg, #1a0e30 0%, #0d0620 40%, #150a28 70%, #1a0e30 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            overflow: hidden;
+            font-family: 'Zen Maru Gothic', sans-serif;
+        }
+
+        canvas {
+            border-radius: 8px;
+            image-rendering: pixelated;
+            image-rendering: crisp-edges;
+        }
+
+        /* ===== Sparkle particle layer ===== */
+        .sparkle-layer {
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            z-index: 0;
+            overflow: hidden;
+        }
+
+        .sparkle-layer::before,
+        .sparkle-layer::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            animation: sparkle-drift 20s linear infinite;
+        }
+
+        .sparkle-layer::before {
+            box-shadow:
+                /* Left side sparkles */
+                5vw 8vh 2px 1px rgba(255, 102, 170, 0.7),
+                8vw 22vh 1px 1px rgba(102, 255, 238, 0.6),
+                3vw 35vh 2px 0px rgba(255, 102, 170, 0.5),
+                12vw 48vh 1px 1px rgba(180, 140, 255, 0.6),
+                6vw 62vh 2px 1px rgba(102, 255, 238, 0.5),
+                2vw 75vh 1px 0px rgba(255, 102, 170, 0.4),
+                10vw 88vh 2px 1px rgba(180, 140, 255, 0.7),
+                15vw 15vh 1px 1px rgba(102, 255, 238, 0.4),
+                7vw 45vh 1px 0px rgba(255, 200, 255, 0.5),
+                1vw 55vh 2px 1px rgba(255, 102, 170, 0.6),
+                13vw 5vh 1px 1px rgba(102, 255, 238, 0.5),
+                4vw 92vh 2px 0px rgba(180, 140, 255, 0.4),
+                /* Right side sparkles */
+                88vw 12vh 2px 1px rgba(102, 255, 238, 0.7),
+                92vw 28vh 1px 0px rgba(255, 102, 170, 0.5),
+                85vw 42vh 2px 1px rgba(180, 140, 255, 0.6),
+                95vw 55vh 1px 1px rgba(102, 255, 238, 0.5),
+                90vw 68vh 2px 0px rgba(255, 102, 170, 0.7),
+                87vw 82vh 1px 1px rgba(180, 140, 255, 0.5),
+                98vw 38vh 2px 1px rgba(255, 102, 170, 0.4),
+                83vw 72vh 1px 0px rgba(102, 255, 238, 0.6),
+                96vw 8vh 2px 1px rgba(180, 140, 255, 0.5),
+                89vw 95vh 1px 1px rgba(255, 102, 170, 0.6),
+                93vw 48vh 2px 0px rgba(102, 255, 238, 0.4),
+                86vw 18vh 1px 1px rgba(255, 200, 255, 0.5);
+            animation: sparkle-drift 20s linear infinite;
+        }
+
+        .sparkle-layer::after {
+            box-shadow:
+                /* Offset sparkle set for density */
+                2vw 15vh 1px 1px rgba(255, 180, 220, 0.5),
+                9vw 30vh 2px 0px rgba(102, 255, 238, 0.4),
+                5vw 50vh 1px 1px rgba(180, 140, 255, 0.6),
+                11vw 70vh 2px 1px rgba(255, 102, 170, 0.5),
+                14vw 40vh 1px 0px rgba(102, 255, 238, 0.7),
+                7vw 85vh 2px 1px rgba(180, 140, 255, 0.4),
+                3vw 10vh 1px 1px rgba(255, 200, 255, 0.5),
+                16vw 60vh 2px 0px rgba(102, 255, 238, 0.5),
+                91vw 20vh 1px 1px rgba(255, 102, 170, 0.6),
+                84vw 35vh 2px 1px rgba(180, 140, 255, 0.5),
+                97vw 50vh 1px 0px rgba(102, 255, 238, 0.6),
+                88vw 65vh 2px 1px rgba(255, 102, 170, 0.4),
+                94vw 78vh 1px 1px rgba(180, 140, 255, 0.7),
+                82vw 90vh 2px 0px rgba(102, 255, 238, 0.5),
+                99vw 25vh 1px 1px rgba(255, 200, 255, 0.4),
+                85vw 55vh 2px 1px rgba(255, 102, 170, 0.5);
+            animation: sparkle-drift 25s linear infinite reverse;
+        }
+
+        @keyframes sparkle-drift {
+            0%   { transform: translateY(0) scale(1); opacity: 0.8; }
+            25%  { opacity: 1; }
+            50%  { transform: translateY(-15px) scale(1.1); opacity: 0.6; }
+            75%  { opacity: 1; }
+            100% { transform: translateY(0) scale(1); opacity: 0.8; }
+        }
+
+        /* ===== Floating orb accents ===== */
+        .orb-layer {
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            z-index: 0;
+            overflow: hidden;
+        }
+
+        .orb-layer::before {
+            content: '';
+            position: absolute;
+            left: 3vw;
+            top: 20vh;
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(255, 102, 170, 0.15) 0%, transparent 70%);
+            filter: blur(20px);
+            animation: orb-float 8s ease-in-out infinite;
+        }
+
+        .orb-layer::after {
+            content: '';
+            position: absolute;
+            right: 3vw;
+            bottom: 20vh;
+            width: 150px;
+            height: 150px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(102, 255, 238, 0.12) 0%, transparent 70%);
+            filter: blur(25px);
+            animation: orb-float 10s ease-in-out infinite reverse;
+        }
+
+        @keyframes orb-float {
+            0%, 100% { transform: translateY(0) scale(1); }
+            50% { transform: translateY(-30px) scale(1.15); }
+        }
+
+        /* ===== Game wrapper with side decoration borders ===== */
+        .game-wrapper {
+            position: relative;
+            z-index: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+            height: 100vh;
+        }
+
+        .game-wrapper::before,
+        .game-wrapper::after {
+            content: '';
+            position: fixed;
+            top: 5vh;
+            bottom: 5vh;
+            width: 3px;
+            pointer-events: none;
+            z-index: 2;
+        }
+
+        /* Left neon border */
+        .game-wrapper::before {
+            left: max(1vw, 8px);
+            background: linear-gradient(
+                180deg,
+                transparent 0%,
+                rgba(255, 102, 170, 0.1) 10%,
+                rgba(255, 102, 170, 0.6) 30%,
+                rgba(180, 140, 255, 0.8) 50%,
+                rgba(102, 255, 238, 0.6) 70%,
+                rgba(102, 255, 238, 0.1) 90%,
+                transparent 100%
+            );
+            box-shadow:
+                0 0 8px rgba(255, 102, 170, 0.4),
+                0 0 20px rgba(255, 102, 170, 0.2),
+                0 0 40px rgba(180, 140, 255, 0.1);
+            border-radius: 2px;
+            animation: border-pulse 4s ease-in-out infinite;
+        }
+
+        /* Right neon border */
+        .game-wrapper::after {
+            right: max(1vw, 8px);
+            background: linear-gradient(
+                180deg,
+                transparent 0%,
+                rgba(102, 255, 238, 0.1) 10%,
+                rgba(102, 255, 238, 0.6) 30%,
+                rgba(180, 140, 255, 0.8) 50%,
+                rgba(255, 102, 170, 0.6) 70%,
+                rgba(255, 102, 170, 0.1) 90%,
+                transparent 100%
+            );
+            box-shadow:
+                0 0 8px rgba(102, 255, 238, 0.4),
+                0 0 20px rgba(102, 255, 238, 0.2),
+                0 0 40px rgba(180, 140, 255, 0.1);
+            border-radius: 2px;
+            animation: border-pulse 4s ease-in-out infinite 2s;
+        }
+
+        @keyframes border-pulse {
+            0%, 100% { opacity: 0.6; filter: brightness(1); }
+            50% { opacity: 1; filter: brightness(1.3); }
+        }
+
+        /* ===== Gem / diamond decorative shapes on sides ===== */
+        .side-gems {
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            z-index: 2;
+            overflow: hidden;
+        }
+
+        .gem {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            pointer-events: none;
+            opacity: 0;
+            animation: gem-glow 6s ease-in-out infinite;
+        }
+
+        .gem::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
+        }
+
+        .gem::after {
+            content: '';
+            position: absolute;
+            inset: -4px;
+            clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
+            filter: blur(6px);
+        }
+
+        /* Left side gems */
+        .gem.l1 { left: 4vw; top: 15vh; animation-delay: 0s; }
+        .gem.l1::before, .gem.l1::after { background: rgba(255, 102, 170, 0.6); }
+
+        .gem.l2 { left: 7vw; top: 40vh; width: 16px; height: 16px; animation-delay: 1.5s; }
+        .gem.l2::before, .gem.l2::after { background: rgba(102, 255, 238, 0.5); }
+
+        .gem.l3 { left: 3vw; top: 65vh; animation-delay: 3s; }
+        .gem.l3::before, .gem.l3::after { background: rgba(180, 140, 255, 0.6); }
+
+        .gem.l4 { left: 9vw; top: 85vh; width: 14px; height: 14px; animation-delay: 4.5s; }
+        .gem.l4::before, .gem.l4::after { background: rgba(255, 102, 170, 0.5); }
+
+        /* Right side gems */
+        .gem.r1 { right: 4vw; top: 20vh; animation-delay: 0.8s; }
+        .gem.r1::before, .gem.r1::after { background: rgba(102, 255, 238, 0.6); }
+
+        .gem.r2 { right: 8vw; top: 50vh; width: 18px; height: 18px; animation-delay: 2.3s; }
+        .gem.r2::before, .gem.r2::after { background: rgba(255, 102, 170, 0.5); }
+
+        .gem.r3 { right: 3vw; top: 72vh; width: 14px; height: 14px; animation-delay: 3.8s; }
+        .gem.r3::before, .gem.r3::after { background: rgba(180, 140, 255, 0.6); }
+
+        .gem.r4 { right: 6vw; top: 10vh; animation-delay: 5s; }
+        .gem.r4::before, .gem.r4::after { background: rgba(102, 255, 238, 0.5); }
+
+        @keyframes gem-glow {
+            0%, 100% { opacity: 0.15; transform: scale(0.8) rotate(0deg); }
+            25% { opacity: 0.5; }
+            50% { opacity: 0.8; transform: scale(1.1) rotate(10deg); }
+            75% { opacity: 0.5; }
+        }
+
+        /* ===== Corner accent decorations ===== */
+        .corner-accents {
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            z-index: 2;
+            overflow: hidden;
+        }
+
+        .corner {
+            position: absolute;
+            width: 60px;
+            height: 60px;
+            pointer-events: none;
+        }
+
+        .corner::before,
+        .corner::after {
+            content: '';
+            position: absolute;
+            border-radius: 1px;
+        }
+
+        .corner::before {
+            /* Horizontal arm */
+            width: 40px;
+            height: 2px;
+        }
+
+        .corner::after {
+            /* Vertical arm */
+            width: 2px;
+            height: 40px;
+        }
+
+        /* Top-left corner */
+        .corner.tl {
+            top: 12px;
+            left: 12px;
+        }
+        .corner.tl::before {
+            top: 0; left: 0;
+            background: linear-gradient(90deg, rgba(255, 102, 170, 0.8), transparent);
+            box-shadow: 0 0 10px rgba(255, 102, 170, 0.4);
+        }
+        .corner.tl::after {
+            top: 0; left: 0;
+            background: linear-gradient(180deg, rgba(255, 102, 170, 0.8), transparent);
+            box-shadow: 0 0 10px rgba(255, 102, 170, 0.4);
+        }
+
+        /* Top-right corner */
+        .corner.tr {
+            top: 12px;
+            right: 12px;
+        }
+        .corner.tr::before {
+            top: 0; right: 0;
+            background: linear-gradient(-90deg, rgba(102, 255, 238, 0.8), transparent);
+            box-shadow: 0 0 10px rgba(102, 255, 238, 0.4);
+        }
+        .corner.tr::after {
+            top: 0; right: 0;
+            background: linear-gradient(180deg, rgba(102, 255, 238, 0.8), transparent);
+            box-shadow: 0 0 10px rgba(102, 255, 238, 0.4);
+        }
+
+        /* Bottom-left corner */
+        .corner.bl {
+            bottom: 12px;
+            left: 12px;
+        }
+        .corner.bl::before {
+            bottom: 0; left: 0;
+            background: linear-gradient(90deg, rgba(102, 255, 238, 0.8), transparent);
+            box-shadow: 0 0 10px rgba(102, 255, 238, 0.4);
+        }
+        .corner.bl::after {
+            bottom: 0; left: 0;
+            background: linear-gradient(0deg, rgba(102, 255, 238, 0.8), transparent);
+            box-shadow: 0 0 10px rgba(102, 255, 238, 0.4);
+        }
+
+        /* Bottom-right corner */
+        .corner.br {
+            bottom: 12px;
+            right: 12px;
+        }
+        .corner.br::before {
+            bottom: 0; right: 0;
+            background: linear-gradient(-90deg, rgba(255, 102, 170, 0.8), transparent);
+            box-shadow: 0 0 10px rgba(255, 102, 170, 0.4);
+        }
+        .corner.br::after {
+            bottom: 0; right: 0;
+            background: linear-gradient(0deg, rgba(255, 102, 170, 0.8), transparent);
+            box-shadow: 0 0 10px rgba(255, 102, 170, 0.4);
+        }
+
+        .corner {
+            animation: corner-pulse 5s ease-in-out infinite;
+        }
+        .corner.tr, .corner.bl {
+            animation-delay: 2.5s;
+        }
+
+        @keyframes corner-pulse {
+            0%, 100% { opacity: 0.4; }
+            50% { opacity: 0.9; }
+        }
+
+        /* ===== Cosmic dust / streaks on far sides ===== */
+        .cosmic-dust {
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            z-index: 0;
+            overflow: hidden;
+        }
+
+        .cosmic-dust::before {
+            content: '';
+            position: absolute;
+            left: -5%;
+            top: 10%;
+            width: 18vw;
+            height: 80vh;
+            background: linear-gradient(
+                160deg,
+                transparent 0%,
+                rgba(255, 102, 170, 0.03) 30%,
+                rgba(180, 140, 255, 0.05) 50%,
+                rgba(102, 255, 238, 0.03) 70%,
+                transparent 100%
+            );
+            filter: blur(30px);
+            transform: skewY(-15deg);
+            animation: dust-sway 12s ease-in-out infinite;
+        }
+
+        .cosmic-dust::after {
+            content: '';
+            position: absolute;
+            right: -5%;
+            top: 5%;
+            width: 18vw;
+            height: 85vh;
+            background: linear-gradient(
+                200deg,
+                transparent 0%,
+                rgba(102, 255, 238, 0.03) 30%,
+                rgba(180, 140, 255, 0.05) 50%,
+                rgba(255, 102, 170, 0.03) 70%,
+                transparent 100%
+            );
+            filter: blur(30px);
+            transform: skewY(15deg);
+            animation: dust-sway 15s ease-in-out infinite reverse;
+        }
+
+        @keyframes dust-sway {
+            0%, 100% { transform: skewY(-15deg) translateX(0); }
+            50% { transform: skewY(-12deg) translateX(10px); }
+        }
+    </style>
+</head>
+<body>
+    <!-- Decorative layers (pointer-events: none) -->
+    <div class="cosmic-dust"></div>
+    <div class="orb-layer"></div>
+    <div class="sparkle-layer"></div>
+
+    <div class="side-gems">
+        <div class="gem l1"></div>
+        <div class="gem l2"></div>
+        <div class="gem l3"></div>
+        <div class="gem l4"></div>
+        <div class="gem r1"></div>
+        <div class="gem r2"></div>
+        <div class="gem r3"></div>
+        <div class="gem r4"></div>
+    </div>
+
+    <div class="corner-accents">
+        <div class="corner tl"></div>
+        <div class="corner tr"></div>
+        <div class="corner bl"></div>
+        <div class="corner br"></div>
+    </div>
+
+    <!-- Game canvas wrapper with neon side borders -->
+    <div class="game-wrapper">
+        <div id="game-container"></div>
+        <script src="https://cdn.jsdelivr.net/npm/phaser@3.80.1/dist/phaser.min.js"></script>
+        <script type="module" src="js/main.js"></script>
+    </div>
+</body>
+</html>
