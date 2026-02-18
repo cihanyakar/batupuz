@@ -10,6 +10,7 @@ export class Fruit {
         this.config = FRUIT_TIERS[tier];
         this.uid = null; // assigned externally after construction
         this._interpTarget = null;
+        this._isStaticSync = false;
 
         // Shadow ellipse underneath the fruit
         this.shadow = scene.add.ellipse(x, y + this.config.radius * 0.6, this.config.radius * 1.4, this.config.radius * 0.4, 0x000000, 0.2);
@@ -45,25 +46,54 @@ export class Fruit {
         this.spawnTime = Date.now();
     }
 
+    // Switch to static body so local physics doesn't fight HOST interpolation
+    makeStaticForSync() {
+        if (!this._isStaticSync && this.body && this.body.body) {
+            this.body.setStatic(true);
+            this._isStaticSync = true;
+        }
+    }
+
     setInterpolationTarget(x, y, angle) {
         // Guard against NaN/Infinity
         if (!isFinite(x) || !isFinite(y) || !isFinite(angle)) return;
+
+        // First interpolation target → disable local physics
+        this.makeStaticForSync();
+
+        // Track previous target for velocity estimation
+        if (this._interpTarget) {
+            this._interpPrev = { x: this._interpTarget.x, y: this._interpTarget.y };
+        }
         this._interpTarget = { x, y, angle };
+        this._interpTime = 0;
     }
 
     applyInterpolation(delta) {
         if (!this._interpTarget || !this.body || !this.body.body) return;
         const t = this._interpTarget;
-        // Lerp factor: smoothly reach target in ~100ms
-        // 10x per second means at 60fps (~16.67ms per frame), factor = 0.167
-        const lerpSpeed = Math.min(1, (delta / 1000) * 10);
+
+        // Accumulate time since last target update
+        this._interpTime = (this._interpTime || 0) + delta;
+
+        // Lerp factor: converge within ~200ms (matching world state interval)
+        // At 60fps: factor ≈ 0.08 per frame for smooth convergence
+        const lerpSpeed = Math.min(1, (delta / 1000) * 8);
+
         const bx = this.body.x;
         const by = this.body.y;
-        const nx = bx + (t.x - bx) * lerpSpeed;
-        const ny = by + (t.y - by) * lerpSpeed;
-        // Guard against NaN from the lerp calculation
+        const dx = t.x - bx;
+        const dy = t.y - by;
+
+        // Adaptive speed: faster when far from target, smoother when close
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        const adaptiveLerp = dist > 20 ? Math.min(1, lerpSpeed * 2) : lerpSpeed;
+
+        const nx = bx + dx * adaptiveLerp;
+        const ny = by + dy * adaptiveLerp;
         if (!isFinite(nx) || !isFinite(ny)) return;
         this.body.setPosition(nx, ny);
+
         const currentAngle = this.body.angle;
         const newAngle = currentAngle + (t.angle - currentAngle) * lerpSpeed;
         if (isFinite(newAngle)) {

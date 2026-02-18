@@ -249,7 +249,7 @@ export class BootScene extends Phaser.Scene {
         const gfx = this.add.graphics();
         const cx = gem.radius;
         const cy = gem.radius;
-        const p = 2; // pixel size
+        const p = 1; // pixel size
 
         // Outer glow - soft pink (diamond shape)
         this._pixelDiamond(gfx, cx, cy, gem.radius - 1, p, 0xffccdd, 0.15);
@@ -305,6 +305,7 @@ export class BootScene extends Phaser.Scene {
 
         gfx.generateTexture(`fruit_${gem.tier}`, d, d);
         gfx.destroy();
+        this.textures.get(`fruit_${gem.tier}`).setFilter(1);
     }
 
     // ─── TIER 1: AMETIST - Amethyst (radius 30) ───
@@ -314,7 +315,7 @@ export class BootScene extends Phaser.Scene {
         const gfx = this.add.graphics();
         const cx = gem.radius;
         const cy = gem.radius;
-        const p = 2;
+        const p = 1;
 
         // Outer glow - purple (hexagonal shape)
         this._pixelHex(gfx, cx, cy, gem.radius - 1, p, 0xbb66ff, 0.15);
@@ -389,6 +390,7 @@ export class BootScene extends Phaser.Scene {
 
         gfx.generateTexture(`fruit_${gem.tier}`, d, d);
         gfx.destroy();
+        this.textures.get(`fruit_${gem.tier}`).setFilter(1);
     }
 
     // ─── TIER 2: TOPAZ (radius 42) ───
@@ -398,7 +400,7 @@ export class BootScene extends Phaser.Scene {
         const gfx = this.add.graphics();
         const cx = gem.radius;
         const cy = gem.radius;
-        const p = 3;
+        const p = 1;
 
         // Outer glow - golden (octagonal shape)
         this._pixelOct(gfx, cx, cy, gem.radius - 1, p, 0xffcc44, 0.15);
@@ -485,6 +487,7 @@ export class BootScene extends Phaser.Scene {
 
         gfx.generateTexture(`fruit_${gem.tier}`, d, d);
         gfx.destroy();
+        this.textures.get(`fruit_${gem.tier}`).setFilter(1);
     }
 
     // ─── TIER 3: ZUMRUT - Emerald (radius 55) ───
@@ -494,7 +497,7 @@ export class BootScene extends Phaser.Scene {
         const gfx = this.add.graphics();
         const cx = gem.radius;
         const cy = gem.radius;
-        const p = 3;
+        const p = 1;
 
         // Outer glow - green (octagonal shape)
         this._pixelOct(gfx, cx, cy, gem.radius - 1, p, 0x44dd88, 0.15);
@@ -602,6 +605,7 @@ export class BootScene extends Phaser.Scene {
 
         gfx.generateTexture(`fruit_${gem.tier}`, d, d);
         gfx.destroy();
+        this.textures.get(`fruit_${gem.tier}`).setFilter(1);
     }
 
     // ─── TIER 4: YAKUT - Ruby (radius 70) ───
@@ -611,7 +615,7 @@ export class BootScene extends Phaser.Scene {
         const gfx = this.add.graphics();
         const cx = gem.radius;
         const cy = gem.radius;
-        const p = 3;
+        const p = 1;
 
         // Outer glow - deep red (hexagonal shape)
         this._pixelHex(gfx, cx, cy, gem.radius - 1, p, 0xff4455, 0.15);
@@ -728,6 +732,7 @@ export class BootScene extends Phaser.Scene {
 
         gfx.generateTexture(`fruit_${gem.tier}`, d, d);
         gfx.destroy();
+        this.textures.get(`fruit_${gem.tier}`).setFilter(1);
     }
 
     // ─── TIER 5: SAFIR - Sapphire (radius 82) ───
@@ -737,7 +742,7 @@ export class BootScene extends Phaser.Scene {
         const gfx = this.add.graphics();
         const cx = gem.radius;
         const cy = gem.radius;
-        const p = 3;
+        const p = 1;
 
         // Outer glow - blue (octagonal shape)
         this._pixelOct(gfx, cx, cy, gem.radius - 1, p, 0x4488ff, 0.15);
@@ -846,6 +851,7 @@ export class BootScene extends Phaser.Scene {
 
         gfx.generateTexture(`fruit_${gem.tier}`, d, d);
         gfx.destroy();
+        this.textures.get(`fruit_${gem.tier}`).setFilter(1);
     }
 
     // ─── TIER 6: ELMAS - Diamond (radius 95) ───
@@ -855,7 +861,7 @@ export class BootScene extends Phaser.Scene {
         const gfx = this.add.graphics();
         const cx = gem.radius;
         const cy = gem.radius;
-        const p = 3;
+        const p = 1;
 
         // Outer glow - brilliant white (octagonal shape)
         this._pixelOct(gfx, cx, cy, gem.radius - 1, p, 0xeeeeff, 0.2);
@@ -973,6 +979,7 @@ export class BootScene extends Phaser.Scene {
 
         gfx.generateTexture(`fruit_${gem.tier}`, d, d);
         gfx.destroy();
+        this.textures.get(`fruit_${gem.tier}`).setFilter(1);
     }
 
     // ─── TIER 7: YILDIZ TASI - Star Stone (radius 108) ───
@@ -982,7 +989,7 @@ export class BootScene extends Phaser.Scene {
         const gfx = this.add.graphics();
         const cx = gem.radius;
         const cy = gem.radius;
-        const p = 3;
+        const p = 1;
 
         // Outer cosmic glow - layered rainbow
         this._pixelCircle(gfx, cx, cy, gem.radius - 1, p, 0xffaaff, 0.12);
@@ -1157,6 +1164,7 @@ export class BootScene extends Phaser.Scene {
 
         gfx.generateTexture(`fruit_${gem.tier}`, d, d);
         gfx.destroy();
+        this.textures.get(`fruit_${gem.tier}`).setFilter(1);
     }
 
     // ─── BACKGROUND: ANIME INDIGO-TO-PURPLE GRADIENT ───
@@ -1164,17 +1172,17 @@ export class BootScene extends Phaser.Scene {
         const W = 600;
         const H = 780;
         const gfx = this.add.graphics();
-        const p = 4; // pixel block size for background
+        const p = 1; // pixel block size for background
 
-        // Base gradient: indigo at top to deep purple at bottom
+        // Base gradient: deep indigo at top to rich purple at bottom
         for (let y = 0; y < H; y += p) {
             for (let x = 0; x < W; x += p) {
                 const t = y / H; // 0 at top, 1 at bottom
 
-                // Indigo (top) -> deep purple (bottom)
-                const r = Math.floor(0x14 + (0x2a - 0x14) * t);
-                const g = Math.floor(0x0a + (0x0e - 0x0a) * t);
-                const b = Math.floor(0x3a + (0x50 - 0x3a) * t);
+                // Deep indigo (top) -> rich purple (bottom)
+                const r = Math.floor(0x12 + (0x2e - 0x12) * t);
+                const g = Math.floor(0x08 + (0x0c - 0x08) * t);
+                const b = Math.floor(0x38 + (0x58 - 0x38) * t);
 
                 const color = (r << 16) | (g << 8) | b;
                 this._px(gfx, x, y, p, color);
@@ -1184,16 +1192,16 @@ export class BootScene extends Phaser.Scene {
         // Soft bokeh circles (large, faint, dreamy circles)
         const bokehCircles = [
             // [x, y, radius, color, alpha]
-            [100, 200, 60, 0xff88bb, 0.04],
-            [480, 150, 80, 0x88ccff, 0.03],
-            [300, 500, 70, 0xff99cc, 0.035],
-            [50, 600, 50, 0x88ddff, 0.04],
-            [520, 450, 65, 0xffaadd, 0.03],
-            [200, 100, 55, 0x99bbff, 0.035],
-            [400, 700, 75, 0xff88cc, 0.03],
-            [150, 400, 45, 0x88ccff, 0.04],
-            [500, 650, 55, 0xcc99ff, 0.03],
-            [350, 300, 50, 0xffaacc, 0.025],
+            [100, 200, 60, 0xff4d94, 0.06],
+            [480, 150, 80, 0x3dffd4, 0.05],
+            [300, 500, 70, 0xff70b0, 0.055],
+            [50, 600, 50, 0x3dcce8, 0.06],
+            [520, 450, 65, 0xcc7aff, 0.05],
+            [200, 100, 55, 0x7a9dff, 0.055],
+            [400, 700, 75, 0xff4d94, 0.05],
+            [150, 400, 45, 0x3dffd4, 0.06],
+            [500, 650, 55, 0xcc7aff, 0.05],
+            [350, 300, 50, 0xff70b0, 0.04],
         ];
         for (const [bx, by, br, bc, ba] of bokehCircles) {
             for (let py = -br; py <= br; py += p) {
@@ -1245,8 +1253,8 @@ export class BootScene extends Phaser.Scene {
         ];
         for (const [px2, py2] of petals) {
             // Each petal is a small 3-4 pixel diamond/teardrop shape
-            const petalAlpha = 0.15 + ((px2 * 3 + py2 * 11) % 100) / 500;
-            const petalColor = ((px2 + py2) % 3 === 0) ? 0xffaacc : ((px2 + py2) % 3 === 1) ? 0xff88bb : 0xffbbdd;
+            const petalAlpha = 0.2 + ((px2 * 3 + py2 * 11) % 100) / 400;
+            const petalColor = ((px2 + py2) % 3 === 0) ? 0xff70b0 : ((px2 + py2) % 3 === 1) ? 0xff4d94 : 0xcc7aff;
 
             // Rotation variation based on position
             const rot = (px2 * 7 + py2 * 3) % 4;
@@ -1284,7 +1292,7 @@ export class BootScene extends Phaser.Scene {
                 const alpha = (1 - y / 300) * 0.025;
                 for (let x = rayX - rayWidth / 2; x < rayX + rayWidth / 2; x += p) {
                     if (x >= 0 && x < W) {
-                        this._px(gfx, x, y, p, 0xccaaff, alpha);
+                        this._px(gfx, x, y, p, 0xcc7aff, alpha);
                     }
                 }
             }

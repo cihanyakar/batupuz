@@ -74,6 +74,9 @@ class Room {
         this.clearTimer(player);
         player.timerSec = DROP_TIMER_SEC;
 
+        // Immediately broadcast the reset so clients see "5" right away
+        this.broadcast({ type: 'timer', playerId: player.id, timeLeft: player.timerSec });
+
         player.timerInterval = setInterval(() => {
             if (this.gameOver) {
                 this.clearTimer(player);
@@ -149,6 +152,11 @@ class Room {
     }
 
     handleCursor(player, x) {
+        // Server-side throttle: max 1 cursor update per 100ms per player
+        const now = Date.now();
+        if (now - (player.lastCursorTime || 0) < 100) return;
+        player.lastCursorTime = now;
+
         // Relay cursor to the OTHER player only
         for (const p of this.players) {
             if (p !== player && p.ws.readyState === 1) {
@@ -199,7 +207,8 @@ class Room {
         if (player.id !== this.hostId) return;
 
         // Relay to all OTHER players (not back to HOST)
-        const data = { type: 'worldState', bodies: msg.bodies, tick: msg.tick };
+        // Pass through the optimized format as-is
+        const data = { type: 'worldState', b: msg.b || msg.bodies };
         for (const p of this.players) {
             if (p !== player && p.ws.readyState === 1) {
                 this.send(p.ws, data);
@@ -291,7 +300,7 @@ class Room {
 // --- Server setup ---
 
 const rooms = new Map();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 8082;
 const STATIC_ROOT = path.join(__dirname, '..');
 
 const MIME_TYPES = {
@@ -309,7 +318,8 @@ const MIME_TYPES = {
 };
 
 const httpServer = http.createServer((req, res) => {
-    let filePath = path.join(STATIC_ROOT, req.url === '/' ? 'index.html' : req.url.split('?')[0]);
+    const urlPath = req.url.split('?')[0];
+    let filePath = path.join(STATIC_ROOT, urlPath === '/' ? 'index.html' : urlPath);
     filePath = path.normalize(filePath);
 
     // Security: prevent directory traversal

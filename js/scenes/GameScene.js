@@ -6,7 +6,7 @@ import { Fruit } from '../objects/Fruit.js';
 import { createWalls } from '../objects/Wall.js';
 import { SoundManager } from '../mechanics/SoundManager.js';
 
-const PLAYER_COLORS = [0xff66aa, 0x66ffee]; // P1: pink, P2: cyan
+const PLAYER_COLORS = [0xff4d94, 0x3dffd4]; // P1: pink, P2: cyan
 
 export class GameScene extends Phaser.Scene {
     constructor() {
@@ -21,6 +21,8 @@ export class GameScene extends Phaser.Scene {
         this.lastGameOverCheck = 0;
         this._worldStateTimer = 0;
         this._nextMergeUid = 0;
+        this._pendingDrop = null; // uid of locally predicted drop
+        this._pendingDropTimeout = null;
 
         // Initialize sound
         SoundManager.init();
@@ -86,20 +88,45 @@ export class GameScene extends Phaser.Scene {
     }
 
     _setupInput() {
-        // Send cursor position (throttled)
+        // Send cursor position (throttled - 150ms)
         let lastCursorSend = 0;
         this.input.on('pointermove', (pointer) => {
             const now = Date.now();
-            if (now - lastCursorSend > 100) {
+            if (now - lastCursorSend > 150) {
                 lastCursorSend = now;
                 NetworkManager.sendCursor(pointer.x);
             }
         });
 
-        // Drop on click - send to server
+        // Drop on click - send to server + client prediction
         this.input.on('pointerdown', (pointer) => {
             if (this.mechanics.isGameOver) return;
+            if (this._pendingDrop) return; // already waiting for confirm
+
             NetworkManager.sendDrop(pointer.x);
+
+            // Client prediction: spawn gem immediately for local player
+            const player = this.mechanics.getPlayer(this.localPlayerId);
+            if (player) {
+                const tier = player.currentTier;
+                const pendingUid = '_p_' + Date.now();
+                this._spawnFruit(this.localPlayerId, tier, pointer.x, pendingUid);
+                this._pendingDrop = pendingUid;
+
+                // Timeout: if server doesn't confirm within 600ms, remove predicted fruit
+                if (this._pendingDropTimeout) this._pendingDropTimeout.remove();
+                this._pendingDropTimeout = this.time.delayedCall(600, () => {
+                    if (this._pendingDrop) {
+                        const fruit = this.fruitMap.get(this._pendingDrop);
+                        if (fruit) {
+                            this.fruits = this.fruits.filter(f => f !== fruit);
+                            fruit.destroy();
+                            this.fruitMap.delete(this._pendingDrop);
+                        }
+                        this._pendingDrop = null;
+                    }
+                });
+            }
         });
     }
 
@@ -273,23 +300,24 @@ export class GameScene extends Phaser.Scene {
 
     _sendWorldStateIfNeeded(delta) {
         this._worldStateTimer += delta;
-        if (this._worldStateTimer < 100) return; // every 100ms
+        if (this._worldStateTimer < 200) return; // every 200ms (was 100ms)
         this._worldStateTimer = 0;
 
         const bodies = [];
         for (const [uid, fruit] of this.fruitMap) {
             if (!fruit.body || !fruit.body.body) continue;
+            // Use shorter keys and round values to reduce payload
             bodies.push({
-                uid,
-                tier: fruit.tier,
-                x: fruit.body.x,
-                y: fruit.body.y,
-                vx: fruit.body.body.velocity.x,
-                vy: fruit.body.body.velocity.y,
-                angle: fruit.body.angle,
+                u: uid,
+                t: fruit.tier,
+                x: Math.round(fruit.body.x * 10) / 10,
+                y: Math.round(fruit.body.y * 10) / 10,
+                a: Math.round(fruit.body.angle * 100) / 100,
             });
         }
-        NetworkManager.sendWorldState({ bodies, tick: Date.now() });
+        if (bodies.length > 0) {
+            NetworkManager.sendWorldState({ b: bodies });
+        }
     }
 
     // ---- GUEST: Interpolation ----
@@ -303,24 +331,39 @@ export class GameScene extends Phaser.Scene {
     // ---- GUEST: Apply HOST-authoritative state ----
 
     _applyWorldState(data) {
-        const { bodies } = data;
+        // Support both formats: {b:[...]} (optimized) and {bodies:[...]} (legacy)
+        const bodies = data.b || data.bodies;
         if (!bodies || !Array.isArray(bodies)) return;
 
         const receivedUids = new Set();
 
         for (const b of bodies) {
-            receivedUids.add(b.uid);
-            const fruit = this.fruitMap.get(b.uid);
+            const uid = b.u || b.uid;
+            receivedUids.add(uid);
+            const fruit = this.fruitMap.get(uid);
             if (fruit) {
-                // Set interpolation target
-                fruit.setInterpolationTarget(b.x, b.y, b.angle);
+                fruit.setInterpolationTarget(b.x, b.y, b.a !== undefined ? b.a : b.angle);
+            } else {
+                // Fruit exists on HOST but not locally - create it (missed drop event)
+                const tier = b.t;
+                if (tier !== undefined) {
+                    const newFruit = new Fruit(this, b.x, b.y, tier);
+                    newFruit.uid = uid;
+                    newFruit.makeStaticForSync(); // no local physics, HOST drives position
+                    this.fruits.push(newFruit);
+                    this.fruitMap.set(uid, newFruit);
+                }
             }
-            // Don't create missing fruits from worldState - they'll come from drop events
         }
 
         // Remove fruits that HOST no longer has (they were merged/destroyed)
+        const now = Date.now();
         for (const [uid, fruit] of this.fruitMap) {
             if (!receivedUids.has(uid)) {
+                // Don't remove predicted drops awaiting server confirmation
+                if (uid.startsWith('_p_')) continue;
+                // Don't remove recently spawned fruits (network sync grace period)
+                if (now - fruit.spawnTime < 500) continue;
                 this.fruits = this.fruits.filter(f => f !== fruit);
                 fruit.destroy();
                 this.fruitMap.delete(uid);
@@ -461,6 +504,8 @@ export class GameScene extends Phaser.Scene {
 
     _shakeCamera() {
         this.cameras.main.shake(50, 0.005);
+        // Haptic feedback on mobile
+        if (navigator.vibrate) navigator.vibrate(30);
     }
 
     _showDropTrail(x, startY, color) {
@@ -495,11 +540,44 @@ export class GameScene extends Phaser.Scene {
     _setupNetworkListeners() {
         // Fruit dropped by any player (including self)
         EventBus.on(Events.NET_DROP, ({ playerId, tier, x, uid }) => {
-            this._spawnFruit(playerId, tier, x, uid);
+            if (playerId === this.localPlayerId && this._pendingDrop) {
+                // Server confirmed our predicted drop - update uid
+                const predicted = this.fruitMap.get(this._pendingDrop);
+                if (predicted) {
+                    this.fruitMap.delete(this._pendingDrop);
+                    predicted.uid = uid;
+                    this.fruitMap.set(uid, predicted);
+                } else {
+                    // Predicted fruit was lost (e.g. world state cleanup) - respawn
+                    this._spawnFruit(playerId, tier, x, uid);
+                }
+                this._pendingDrop = null;
+                if (this._pendingDropTimeout) {
+                    this._pendingDropTimeout.remove();
+                    this._pendingDropTimeout = null;
+                }
+            } else if (playerId !== this.localPlayerId) {
+                // Other player's drop - spawn normally
+                this._spawnFruit(playerId, tier, x, uid);
+            }
         });
 
         // Auto-drop (timer expired)
         EventBus.on(Events.NET_AUTO_DROP, ({ playerId, tier, x, uid }) => {
+            // If local player was auto-dropped while having a pending prediction, clean up
+            if (playerId === this.localPlayerId && this._pendingDrop) {
+                const predicted = this.fruitMap.get(this._pendingDrop);
+                if (predicted) {
+                    this.fruits = this.fruits.filter(f => f !== predicted);
+                    predicted.destroy();
+                    this.fruitMap.delete(this._pendingDrop);
+                }
+                this._pendingDrop = null;
+                if (this._pendingDropTimeout) {
+                    this._pendingDropTimeout.remove();
+                    this._pendingDropTimeout = null;
+                }
+            }
             this._spawnFruit(playerId, tier, x, uid);
         });
 

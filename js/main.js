@@ -8,10 +8,9 @@ const config = {
     parent: 'game-container',
     width: 600,
     height: 780,
-    backgroundColor: '#1a0e30',
-    pixelArt: true,
-    antialias: false,
-    roundPixels: true,
+    backgroundColor: '#12082a',
+    pixelArt: false,
+    antialias: true,
     scale: {
         mode: Phaser.Scale.FIT,
         autoCenter: Phaser.Scale.CENTER_BOTH,

@@ -3,27 +3,27 @@ import { EventBus, Events } from '../mechanics/EventBus.js';
 import { NetworkManager } from '../mechanics/NetworkManager.js';
 import { SoundManager } from '../mechanics/SoundManager.js';
 
-// Anime color palette
+// Anime color palette - vibrant
 const COLORS = {
-    darkIndigo: 0x1a0e30,
-    midPurple: 0x2d1855,
-    neonPink: 0xff66aa,
-    neonCyan: 0x66ffee,
-    softPink: 0xff99cc,
-    softPurple: 0xbb88ff,
-    darkOverlay: 0x0a0510,
+    darkIndigo: 0x12082a,
+    midPurple: 0x3a1d6e,
+    neonPink: 0xff4d94,
+    neonCyan: 0x3dffd4,
+    softPink: 0xff70b0,
+    softPurple: 0xcc7aff,
+    darkOverlay: 0x08030f,
     skinLight: 0xffe4cc,
     skinShadow: 0xeeccaa,
-    textPink: '#ff66aa',
-    textCyan: '#66ffee',
+    textPink: '#ff4d94',
+    textCyan: '#3dffd4',
     textWhite: '#ffffff',
-    textPurple: '#bb88ff',
-    textYellow: '#ffee66',
-    textDimPurple: '#8866aa',
+    textPurple: '#cc7aff',
+    textYellow: '#ffdd33',
+    textDimPurple: '#9966cc',
 };
 
-const PLAYER_HAIR_COLORS = [0xff66aa, 0x66ddee]; // P1: pink hair, P2: cyan hair
-const PLAYER_ACCENT_COLORS = [0xff66aa, 0x66ffee]; // P1: pink, P2: cyan
+const PLAYER_HAIR_COLORS = [0xff4d94, 0x3dddcc]; // P1: pink hair, P2: cyan hair
+const PLAYER_ACCENT_COLORS = [0xff4d94, 0x3dffd4]; // P1: pink, P2: cyan
 const PLAYER_NAMES = ['P1', 'P2'];
 
 export class UIScene extends Phaser.Scene {
@@ -37,33 +37,33 @@ export class UIScene extends Phaser.Scene {
         this._isGameOver = false;
         this._timerWarningPlayed = {};
 
-        // ===== Top bar background (56px height, gradient) =====
+        // ===== Top bar background (68px height, gradient) =====
         const topBarG = this.add.graphics();
         const gradientSteps = 8;
         for (let i = 0; i < gradientSteps; i++) {
-            const yStart = (56 / gradientSteps) * i;
-            const h = 56 / gradientSteps;
-            const alpha = 0.75 - (0.50 * i / (gradientSteps - 1));
+            const yStart = (68 / gradientSteps) * i;
+            const h = 68 / gradientSteps;
+            const alpha = 0.80 - (0.55 * i / (gradientSteps - 1));
             topBarG.fillStyle(COLORS.darkIndigo, alpha);
             topBarG.fillRect(0, yStart, GAME_WIDTH, h);
         }
-        // Neon pink line at y=54
+        // Neon pink line at y=66
         topBarG.fillStyle(COLORS.neonPink, 0.4);
-        topBarG.fillRect(0, 54, GAME_WIDTH, 2);
+        topBarG.fillRect(0, 66, GAME_WIDTH, 2);
 
         // Subtle separator dots between HUD and play area
         for (let x = 10; x < GAME_WIDTH; x += 12) {
             topBarG.fillStyle(COLORS.neonPink, 0.15);
-            topBarG.fillRect(x, 58, 4, 1);
+            topBarG.fillRect(x, 70, 4, 1);
         }
 
-        // ===== Score display (center, y=28) =====
-        this.scoreText = this.add.text(GAME_WIDTH / 2, 28, 'Score: 0', {
-            fontSize: '20px',
+        // ===== Score display (center, y=34) =====
+        this.scoreText = this.add.text(GAME_WIDTH / 2, 34, 'Score: 0', {
+            fontSize: '24px',
             fontFamily: '"Zen Maru Gothic", "Hiragino Sans", sans-serif',
             color: COLORS.textPink,
             fontStyle: 'bold',
-            stroke: '#1a0e30',
+            stroke: '#12082a',
             strokeThickness: 2,
         }).setOrigin(0.5);
 
@@ -92,7 +92,7 @@ export class UIScene extends Phaser.Scene {
         this._currentTier = null;
         this._previewSprite = null;
         this._previewLocked = false;
-        const previewY = Math.round((56 + PLAY_AREA_TOP) / 2);
+        const previewY = Math.round((68 + PLAY_AREA_TOP) / 2);
         this.input.on('pointermove', (pointer) => {
             if (!this._previewSprite || this._isGameOver || this._previewLocked) return;
             const cfg = FRUIT_TIERS[this._currentTier];
@@ -110,29 +110,27 @@ export class UIScene extends Phaser.Scene {
         const isLocal = playerId === this.localPlayerId;
         const hairColor = PLAYER_HAIR_COLORS[playerId];
         const accentColor = PLAYER_ACCENT_COLORS[playerId];
-        const rowY = 28;
+        const rowY = 34;
 
         if (isLeft) {
             // --- LEFT SIDE (P1) ---
-            // Tiny avatar
-            const avatarX = 24;
+            const avatarX = 26;
             const avatarG = this.add.graphics();
-            this._drawAnimeGirl(avatarG, avatarX, rowY, 12, hairColor, accentColor);
+            this._drawAnimeGirl(avatarG, avatarX, rowY, 14, hairColor, accentColor);
 
             // Player name
-            this.add.text(42, 18, PLAYER_NAMES[playerId], {
-                fontSize: '10px',
+            this.add.text(46, 16, PLAYER_NAMES[playerId], {
+                fontSize: '13px',
                 fontFamily: '"Zen Maru Gothic", "Hiragino Sans", sans-serif',
                 color: COLORS.textWhite,
                 fontStyle: 'bold',
-                stroke: '#1a0e30',
-                strokeThickness: 1,
+                stroke: '#12082a',
+                strokeThickness: 2,
             }).setOrigin(0, 0);
 
-            // "(Sen)" label if local
             if (isLocal) {
-                this.add.text(42, 30, '(You)', {
-                    fontSize: '7px',
+                this.add.text(46, 34, '(Sen)', {
+                    fontSize: '10px',
                     fontFamily: '"Zen Maru Gothic", "Hiragino Sans", sans-serif',
                     color: COLORS.textPink,
                     fontStyle: 'italic',
@@ -140,34 +138,34 @@ export class UIScene extends Phaser.Scene {
             }
 
             // Timer circle
-            const timerX = 80;
+            const timerX = 92;
             const timerY = rowY;
             const timerBgG = this.add.graphics();
             timerBgG.lineStyle(3, COLORS.midPurple, 0.8);
             timerBgG.beginPath();
-            timerBgG.arc(timerX, timerY, 12, 0, Math.PI * 2, false);
+            timerBgG.arc(timerX, timerY, 15, 0, Math.PI * 2, false);
             timerBgG.strokePath();
             timerBgG.fillStyle(COLORS.darkIndigo, 0.6);
-            timerBgG.fillCircle(timerX, timerY, 10);
+            timerBgG.fillCircle(timerX, timerY, 13);
 
             const timerArc = this.add.graphics();
 
             const timerText = this.add.text(timerX, timerY, '5', {
-                fontSize: '12px',
+                fontSize: '16px',
                 fontFamily: '"Zen Maru Gothic", "Hiragino Sans", sans-serif',
                 color: COLORS.textPink,
                 fontStyle: 'bold',
             }).setOrigin(0.5);
 
             // Next gem preview
-            const previewX = 110;
+            const previewX = 130;
             const previewY = rowY;
             const previewFrameG = this.add.graphics();
-            this._drawPreviewFrame(previewFrameG, previewX, previewY, 11);
+            this._drawPreviewFrame(previewFrameG, previewX, previewY, 14);
 
-            const previewCircle = this.add.circle(previewX, previewY, 8, 0x4a4a5a);
-            const previewLabel = this.add.text(previewX, previewY, '', {
-                fontSize: '6px',
+            const previewCircle = this.add.circle(previewX, previewY, 10, 0x4a4a5a);
+            const previewLabel = this.add.text(previewX, previewY + 20, '', {
+                fontSize: '8px',
                 fontFamily: '"Zen Maru Gothic", "Hiragino Sans", sans-serif',
                 color: '#fff',
                 stroke: '#000',
@@ -180,15 +178,14 @@ export class UIScene extends Phaser.Scene {
             };
         } else {
             // --- RIGHT SIDE (P2) - mirror of left ---
-            // Next gem preview
-            const previewX = 490;
+            const previewX = 470;
             const previewY = rowY;
             const previewFrameG = this.add.graphics();
-            this._drawPreviewFrame(previewFrameG, previewX, previewY, 11);
+            this._drawPreviewFrame(previewFrameG, previewX, previewY, 14);
 
-            const previewCircle = this.add.circle(previewX, previewY, 8, 0x4a4a5a);
-            const previewLabel = this.add.text(previewX, previewY, '', {
-                fontSize: '6px',
+            const previewCircle = this.add.circle(previewX, previewY, 10, 0x4a4a5a);
+            const previewLabel = this.add.text(previewX, previewY + 20, '', {
+                fontSize: '8px',
                 fontFamily: '"Zen Maru Gothic", "Hiragino Sans", sans-serif',
                 color: '#fff',
                 stroke: '#000',
@@ -196,49 +193,47 @@ export class UIScene extends Phaser.Scene {
             }).setOrigin(0.5);
 
             // Timer circle
-            const timerX = 520;
+            const timerX = 508;
             const timerY = rowY;
             const timerBgG = this.add.graphics();
             timerBgG.lineStyle(3, COLORS.midPurple, 0.8);
             timerBgG.beginPath();
-            timerBgG.arc(timerX, timerY, 12, 0, Math.PI * 2, false);
+            timerBgG.arc(timerX, timerY, 15, 0, Math.PI * 2, false);
             timerBgG.strokePath();
             timerBgG.fillStyle(COLORS.darkIndigo, 0.6);
-            timerBgG.fillCircle(timerX, timerY, 10);
+            timerBgG.fillCircle(timerX, timerY, 13);
 
             const timerArc = this.add.graphics();
 
             const timerText = this.add.text(timerX, timerY, '5', {
-                fontSize: '12px',
+                fontSize: '16px',
                 fontFamily: '"Zen Maru Gothic", "Hiragino Sans", sans-serif',
                 color: COLORS.textPink,
                 fontStyle: 'bold',
             }).setOrigin(0.5);
 
             // Player name
-            this.add.text(558, 18, PLAYER_NAMES[playerId], {
-                fontSize: '10px',
+            this.add.text(554, 16, PLAYER_NAMES[playerId], {
+                fontSize: '13px',
                 fontFamily: '"Zen Maru Gothic", "Hiragino Sans", sans-serif',
                 color: COLORS.textWhite,
                 fontStyle: 'bold',
-                stroke: '#1a0e30',
-                strokeThickness: 1,
+                stroke: '#12082a',
+                strokeThickness: 2,
             }).setOrigin(1, 0);
 
-            // "(Sen)" label if local
             if (isLocal) {
-                this.add.text(558, 30, '(You)', {
-                    fontSize: '7px',
+                this.add.text(554, 34, '(Sen)', {
+                    fontSize: '10px',
                     fontFamily: '"Zen Maru Gothic", "Hiragino Sans", sans-serif',
                     color: COLORS.textPink,
                     fontStyle: 'italic',
                 }).setOrigin(1, 0);
             }
 
-            // Tiny avatar
             const avatarX = 576;
             const avatarG = this.add.graphics();
-            this._drawAnimeGirl(avatarG, avatarX, rowY, 12, hairColor, accentColor);
+            this._drawAnimeGirl(avatarG, avatarX, rowY, 14, hairColor, accentColor);
 
             this.playerPanels[playerId] = {
                 avatarG, timerText, timerArc, timerX, timerY,
@@ -391,7 +386,7 @@ export class UIScene extends Phaser.Scene {
         const cfg = FRUIT_TIERS[tier];
         if (!cfg) return;
 
-        const previewY = Math.round((56 + PLAY_AREA_TOP) / 2);
+        const previewY = Math.round((68 + PLAY_AREA_TOP) / 2);
         this._previewSprite = this.add.image(GAME_WIDTH / 2, previewY, `fruit_${tier}`);
         this._previewSprite.setDisplaySize(cfg.radius * 2, cfg.radius * 2);
         this._previewSprite.setAlpha(0.6);
@@ -415,7 +410,7 @@ export class UIScene extends Phaser.Scene {
 
             const nextCfg = FRUIT_TIERS[nextTier];
             panel.previewCircle.setFillStyle(nextCfg.color);
-            panel.previewCircle.setRadius(Math.min(nextCfg.radius * 0.35, 12));
+            panel.previewCircle.setRadius(Math.min(nextCfg.radius * 0.35, 14));
             panel.previewLabel.setText(nextCfg.name);
 
             // Update cursor preview for local player
@@ -430,16 +425,17 @@ export class UIScene extends Phaser.Scene {
 
             panel.timerText.setText(String(timeLeft));
 
-            if (timeLeft <= 3) {
+            if (timeLeft <= 2) {
                 panel.timerText.setColor(COLORS.textPink);
                 if (!this._timerWarningPlayed[playerId] || this._timerWarningPlayed[playerId] !== timeLeft) {
                     SoundManager.play('timerWarning');
                     this._timerWarningPlayed[playerId] = timeLeft;
                 }
-            } else if (timeLeft <= 5) {
+            } else if (timeLeft <= 4) {
                 panel.timerText.setColor(COLORS.textYellow);
+                this._timerWarningPlayed[playerId] = null;
             } else {
-                panel.timerText.setColor(COLORS.textPink);
+                panel.timerText.setColor(COLORS.textCyan);
                 this._timerWarningPlayed[playerId] = null;
             }
 
@@ -449,9 +445,9 @@ export class UIScene extends Phaser.Scene {
             const endAngle = startAngle + (Math.PI * 2 * progress);
 
             let arcColor;
-            if (timeLeft <= 3) {
+            if (timeLeft <= 2) {
                 arcColor = COLORS.neonPink;
-            } else if (timeLeft <= 5) {
+            } else if (timeLeft <= 4) {
                 arcColor = 0xffee66;
             } else {
                 arcColor = COLORS.neonCyan;
@@ -459,7 +455,7 @@ export class UIScene extends Phaser.Scene {
 
             panel.timerArc.lineStyle(3, arcColor, 0.8);
             panel.timerArc.beginPath();
-            panel.timerArc.arc(panel.timerX, panel.timerY, 12, startAngle, endAngle, false);
+            panel.timerArc.arc(panel.timerX, panel.timerY, 15, startAngle, endAngle, false);
             panel.timerArc.strokePath();
         });
 
@@ -508,7 +504,7 @@ export class UIScene extends Phaser.Scene {
         this.gameOverTextShadow = this.add.text(GAME_WIDTH / 2 + 2, 278, title, {
             fontSize: '38px',
             fontFamily: '"Zen Maru Gothic", "Hiragino Sans", sans-serif',
-            color: '#ff66aa',
+            color: '#ff4d94',
             fontStyle: 'bold',
         }).setOrigin(0.5).setAlpha(0.3);
 
@@ -517,9 +513,9 @@ export class UIScene extends Phaser.Scene {
             fontFamily: '"Zen Maru Gothic", "Hiragino Sans", sans-serif',
             color: COLORS.textPink,
             fontStyle: 'bold',
-            stroke: '#1a0e30',
+            stroke: '#12082a',
             strokeThickness: 3,
-            shadow: { offsetX: 0, offsetY: 0, color: '#ff66aa', blur: 10, fill: true },
+            shadow: { offsetX: 0, offsetY: 0, color: '#ff4d94', blur: 10, fill: true },
         }).setOrigin(0.5);
 
         this.goPanelG = this.add.graphics();
@@ -546,16 +542,16 @@ export class UIScene extends Phaser.Scene {
             fontFamily: '"Zen Maru Gothic", "Hiragino Sans", sans-serif',
             color: COLORS.textCyan,
             fontStyle: 'bold',
-            stroke: '#1a0e30',
+            stroke: '#12082a',
             strokeThickness: 2,
-            shadow: { offsetX: 0, offsetY: 0, color: '#66ffee', blur: 6, fill: true },
+            shadow: { offsetX: 0, offsetY: 0, color: '#3dffd4', blur: 6, fill: true },
         }).setOrigin(0.5, 0);
 
         const restartLabel = playerLeft ? 'Return to Lobby' : 'Play Again';
         const btnY = 430;
         this.goButtonG = this.add.graphics();
-        const btnW = 200;
-        const btnH = 44;
+        const btnW = 240;
+        const btnH = 52;
         const btnLeft = GAME_WIDTH / 2 - btnW / 2;
         const btnTop = btnY - btnH / 2;
 
@@ -569,11 +565,11 @@ export class UIScene extends Phaser.Scene {
         this.goButtonG.strokeRoundedRect(btnLeft - 2, btnTop - 2, btnW + 4, btnH + 4, 14);
 
         this.restartText = this.add.text(GAME_WIDTH / 2, btnY - 1, restartLabel, {
-            fontSize: '16px',
+            fontSize: '20px',
             fontFamily: '"Zen Maru Gothic", "Hiragino Sans", sans-serif',
             color: COLORS.textWhite,
             fontStyle: 'bold',
-            stroke: '#2d1855',
+            stroke: '#3a1d6e',
             strokeThickness: 2,
         }).setOrigin(0.5);
 
