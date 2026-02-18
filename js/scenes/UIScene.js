@@ -5,8 +5,8 @@ import { SoundManager } from '../mechanics/SoundManager.js';
 
 // Anime color palette - vibrant
 const COLORS = {
-    darkIndigo: 0x12082a,
-    midPurple: 0x3a1d6e,
+    darkIndigo: 0x1e1240,
+    midPurple: 0x4a2888,
     neonPink: 0xff4d94,
     neonCyan: 0x3dffd4,
     softPink: 0xff70b0,
@@ -63,7 +63,7 @@ export class UIScene extends Phaser.Scene {
             fontFamily: '"Zen Maru Gothic", "Hiragino Sans", sans-serif',
             color: COLORS.textPink,
             fontStyle: 'bold',
-            stroke: '#12082a',
+            stroke: '#1e1240',
             strokeThickness: 2,
         }).setOrigin(0.5);
 
@@ -124,7 +124,7 @@ export class UIScene extends Phaser.Scene {
                 fontFamily: '"Zen Maru Gothic", "Hiragino Sans", sans-serif',
                 color: COLORS.textWhite,
                 fontStyle: 'bold',
-                stroke: '#12082a',
+                stroke: '#1e1240',
                 strokeThickness: 2,
             }).setOrigin(0, 0);
 
@@ -218,7 +218,7 @@ export class UIScene extends Phaser.Scene {
                 fontFamily: '"Zen Maru Gothic", "Hiragino Sans", sans-serif',
                 color: COLORS.textWhite,
                 fontStyle: 'bold',
-                stroke: '#12082a',
+                stroke: '#1e1240',
                 strokeThickness: 2,
             }).setOrigin(1, 0);
 
@@ -513,7 +513,7 @@ export class UIScene extends Phaser.Scene {
             fontFamily: '"Zen Maru Gothic", "Hiragino Sans", sans-serif',
             color: COLORS.textPink,
             fontStyle: 'bold',
-            stroke: '#12082a',
+            stroke: '#1e1240',
             strokeThickness: 3,
             shadow: { offsetX: 0, offsetY: 0, color: '#ff4d94', blur: 10, fill: true },
         }).setOrigin(0.5);
@@ -542,7 +542,7 @@ export class UIScene extends Phaser.Scene {
             fontFamily: '"Zen Maru Gothic", "Hiragino Sans", sans-serif',
             color: COLORS.textCyan,
             fontStyle: 'bold',
-            stroke: '#12082a',
+            stroke: '#1e1240',
             strokeThickness: 2,
             shadow: { offsetX: 0, offsetY: 0, color: '#3dffd4', blur: 6, fill: true },
         }).setOrigin(0.5, 0);
@@ -569,7 +569,7 @@ export class UIScene extends Phaser.Scene {
             fontFamily: '"Zen Maru Gothic", "Hiragino Sans", sans-serif',
             color: COLORS.textWhite,
             fontStyle: 'bold',
-            stroke: '#3a1d6e',
+            stroke: '#4a2888',
             strokeThickness: 2,
         }).setOrigin(0.5);
 

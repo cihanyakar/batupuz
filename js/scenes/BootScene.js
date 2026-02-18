@@ -1174,15 +1174,15 @@ export class BootScene extends Phaser.Scene {
         const gfx = this.add.graphics();
         const p = 1; // pixel block size for background
 
-        // Base gradient: deep indigo at top to rich purple at bottom
+        // Base gradient: medium indigo at top to soft purple at bottom
         for (let y = 0; y < H; y += p) {
             for (let x = 0; x < W; x += p) {
                 const t = y / H; // 0 at top, 1 at bottom
 
-                // Deep indigo (top) -> rich purple (bottom)
-                const r = Math.floor(0x12 + (0x2e - 0x12) * t);
-                const g = Math.floor(0x08 + (0x0c - 0x08) * t);
-                const b = Math.floor(0x38 + (0x58 - 0x38) * t);
+                // Brighter indigo (top) -> soft purple (bottom)
+                const r = Math.floor(0x22 + (0x38 - 0x22) * t);
+                const g = Math.floor(0x14 + (0x18 - 0x14) * t);
+                const b = Math.floor(0x50 + (0x70 - 0x50) * t);
 
                 const color = (r << 16) | (g << 8) | b;
                 this._px(gfx, x, y, p, color);
@@ -1192,16 +1192,16 @@ export class BootScene extends Phaser.Scene {
         // Soft bokeh circles (large, faint, dreamy circles)
         const bokehCircles = [
             // [x, y, radius, color, alpha]
-            [100, 200, 60, 0xff4d94, 0.06],
-            [480, 150, 80, 0x3dffd4, 0.05],
-            [300, 500, 70, 0xff70b0, 0.055],
-            [50, 600, 50, 0x3dcce8, 0.06],
-            [520, 450, 65, 0xcc7aff, 0.05],
-            [200, 100, 55, 0x7a9dff, 0.055],
-            [400, 700, 75, 0xff4d94, 0.05],
-            [150, 400, 45, 0x3dffd4, 0.06],
-            [500, 650, 55, 0xcc7aff, 0.05],
-            [350, 300, 50, 0xff70b0, 0.04],
+            [100, 200, 60, 0xff4d94, 0.10],
+            [480, 150, 80, 0x3dffd4, 0.08],
+            [300, 500, 70, 0xff70b0, 0.09],
+            [50, 600, 50, 0x3dcce8, 0.10],
+            [520, 450, 65, 0xcc7aff, 0.08],
+            [200, 100, 55, 0x7a9dff, 0.09],
+            [400, 700, 75, 0xff4d94, 0.08],
+            [150, 400, 45, 0x3dffd4, 0.10],
+            [500, 650, 55, 0xcc7aff, 0.08],
+            [350, 300, 50, 0xff70b0, 0.07],
         ];
         for (const [bx, by, br, bc, ba] of bokehCircles) {
             for (let py = -br; py <= br; py += p) {
@@ -1234,7 +1234,7 @@ export class BootScene extends Phaser.Scene {
         ];
         for (const [sx, sy] of stars) {
             // Random-ish brightness based on position
-            const brightness = 0.3 + ((sx * 7 + sy * 13) % 100) / 150;
+            const brightness = 0.5 + ((sx * 7 + sy * 13) % 100) / 120;
             // Cross shape (+)
             this._px(gfx, sx, sy, p, 0xffffff, brightness);
             this._px(gfx, sx - p, sy, p, 0xffffff, brightness * 0.4);
@@ -1289,7 +1289,7 @@ export class BootScene extends Phaser.Scene {
             const rayX = 150 + ray * 80;
             const rayWidth = 20 + ray * 4;
             for (let y = 0; y < 300; y += p) {
-                const alpha = (1 - y / 300) * 0.025;
+                const alpha = (1 - y / 300) * 0.05;
                 for (let x = rayX - rayWidth / 2; x < rayX + rayWidth / 2; x += p) {
                     if (x >= 0 && x < W) {
                         this._px(gfx, x, y, p, 0xcc7aff, alpha);

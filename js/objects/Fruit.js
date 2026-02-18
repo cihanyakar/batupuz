@@ -58,8 +58,11 @@ export class Fruit {
         // Guard against NaN/Infinity
         if (!isFinite(x) || !isFinite(y) || !isFinite(angle)) return;
 
-        // First interpolation target → disable local physics
-        this.makeStaticForSync();
+        // Grace period: let recently spawned fruits fall naturally with physics
+        // before switching to static for HOST-driven interpolation
+        if (Date.now() - this.spawnTime > 800) {
+            this.makeStaticForSync();
+        }
 
         // Track previous target for velocity estimation
         if (this._interpTarget) {
@@ -71,13 +74,22 @@ export class Fruit {
 
     applyInterpolation(delta) {
         if (!this._interpTarget || !this.body || !this.body.body) return;
+
+        // During grace period, let physics run naturally (fruit falls with gravity)
+        if (!this._isStaticSync) {
+            if (Date.now() - this.spawnTime > 800) {
+                this.makeStaticForSync();
+            } else {
+                return; // Still falling, skip interpolation
+            }
+        }
+
         const t = this._interpTarget;
 
         // Accumulate time since last target update
         this._interpTime = (this._interpTime || 0) + delta;
 
         // Lerp factor: converge within ~200ms (matching world state interval)
-        // At 60fps: factor ≈ 0.08 per frame for smooth convergence
         const lerpSpeed = Math.min(1, (delta / 1000) * 8);
 
         const bx = this.body.x;

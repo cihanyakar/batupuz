@@ -98,36 +98,52 @@ export class GameScene extends Phaser.Scene {
             }
         });
 
-        // Drop on click - send to server + client prediction
+        // Drop on click inside canvas
         this.input.on('pointerdown', (pointer) => {
-            if (this.mechanics.isGameOver) return;
-            if (this._pendingDrop) return; // already waiting for confirm
-
-            NetworkManager.sendDrop(pointer.x);
-
-            // Client prediction: spawn gem immediately for local player
-            const player = this.mechanics.getPlayer(this.localPlayerId);
-            if (player) {
-                const tier = player.currentTier;
-                const pendingUid = '_p_' + Date.now();
-                this._spawnFruit(this.localPlayerId, tier, pointer.x, pendingUid);
-                this._pendingDrop = pendingUid;
-
-                // Timeout: if server doesn't confirm within 600ms, remove predicted fruit
-                if (this._pendingDropTimeout) this._pendingDropTimeout.remove();
-                this._pendingDropTimeout = this.time.delayedCall(600, () => {
-                    if (this._pendingDrop) {
-                        const fruit = this.fruitMap.get(this._pendingDrop);
-                        if (fruit) {
-                            this.fruits = this.fruits.filter(f => f !== fruit);
-                            fruit.destroy();
-                            this.fruitMap.delete(this._pendingDrop);
-                        }
-                        this._pendingDrop = null;
-                    }
-                });
-            }
+            this._doDrop(pointer.x);
         });
+
+        // Drop on click OUTSIDE canvas - clamp to nearest edge
+        this._windowClickHandler = (e) => {
+            const canvas = this.game.canvas;
+            if (e.target === canvas) return; // already handled by Phaser
+            const rect = canvas.getBoundingClientRect();
+            // Only handle clicks that are vertically within game area
+            if (e.clientY < rect.top || e.clientY > rect.bottom) return;
+            const gameX = e.clientX < rect.left + rect.width / 2 ? 0 : GAME_WIDTH;
+            this._doDrop(gameX);
+        };
+        window.addEventListener('pointerdown', this._windowClickHandler);
+    }
+
+    _doDrop(x) {
+        if (this.mechanics.isGameOver) return;
+        if (this._pendingDrop) return; // already waiting for confirm
+
+        NetworkManager.sendDrop(x);
+
+        // Client prediction: spawn gem immediately for local player
+        const player = this.mechanics.getPlayer(this.localPlayerId);
+        if (player) {
+            const tier = player.currentTier;
+            const pendingUid = '_p_' + Date.now();
+            this._spawnFruit(this.localPlayerId, tier, x, pendingUid);
+            this._pendingDrop = pendingUid;
+
+            // Timeout: if server doesn't confirm within 600ms, remove predicted fruit
+            if (this._pendingDropTimeout) this._pendingDropTimeout.remove();
+            this._pendingDropTimeout = this.time.delayedCall(600, () => {
+                if (this._pendingDrop) {
+                    const fruit = this.fruitMap.get(this._pendingDrop);
+                    if (fruit) {
+                        this.fruits = this.fruits.filter(f => f !== fruit);
+                        fruit.destroy();
+                        this.fruitMap.delete(this._pendingDrop);
+                    }
+                    this._pendingDrop = null;
+                }
+            });
+        }
     }
 
     _setupCollisionHandler() {

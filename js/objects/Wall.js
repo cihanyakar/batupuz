@@ -1,11 +1,11 @@
 import { GAME_WIDTH, GAME_HEIGHT, PLAY_AREA_TOP } from '../mechanics/FruitConfig.js';
 
-// Anime color palette
-const DARK_PURPLE  = 0x2a1050;
-const MID_PURPLE   = 0x3d1a6e;
-const LIGHT_PURPLE = 0x5a2d8e;
-const NEON_PINK    = 0xff44aa;
-const FLOOR_INDIGO = 0x1a0e30;
+// Anime color palette - brighter
+const DARK_PURPLE  = 0x3a1860;
+const MID_PURPLE   = 0x502888;
+const LIGHT_PURPLE = 0x7040a8;
+const NEON_PINK    = 0xff4d94;
+const FLOOR_INDIGO = 0x221248;
 
 export function createWalls(scene) {
     const T = 24; // wall thickness
@@ -50,9 +50,9 @@ function _drawAnimeWall(gfx, x, y, width, height, side) {
     for (let i = 0; i < steps; i++) {
         // Interpolate from dark purple to lighter purple
         const t = i / (steps - 1);
-        const r = Math.floor(0x2a + (0x5a - 0x2a) * t);
-        const g = Math.floor(0x10 + (0x2d - 0x10) * t);
-        const b = Math.floor(0x50 + (0x8e - 0x50) * t);
+        const r = Math.floor(0x3a + (0x70 - 0x3a) * t);
+        const g = Math.floor(0x18 + (0x40 - 0x18) * t);
+        const b = Math.floor(0x60 + (0xa8 - 0x60) * t);
         const color = (r << 16) | (g << 8) | b;
 
         if (side === 'left') {
@@ -125,15 +125,15 @@ function _drawAnimeFloor(gfx, x, y, width, height) {
 
 function _drawNeonBarrier(scene, gfx, yPos) {
     // Wide faint pink outer glow
-    gfx.fillStyle(0xff66aa, 0.06);
+    gfx.fillStyle(0xff4d94, 0.06);
     gfx.fillRect(0, yPos - 8, GAME_WIDTH, 16);
 
     // Mid glow - pink
-    gfx.fillStyle(0xff66aa, 0.12);
+    gfx.fillStyle(0xff4d94, 0.12);
     gfx.fillRect(0, yPos - 4, GAME_WIDTH, 8);
 
     // Core bright line - pink
-    gfx.fillStyle(0xff66aa, 0.5);
+    gfx.fillStyle(0xff4d94, 0.5);
     gfx.fillRect(0, yPos - 1, GAME_WIDTH, 2);
 
     // Bright center line
@@ -143,7 +143,7 @@ function _drawNeonBarrier(scene, gfx, yPos) {
     // Alternating pink and cyan dots along the barrier
     for (let x = 15; x < GAME_WIDTH; x += 30) {
         const isPink = ((x / 30) % 2) < 1;
-        const dotColor = isPink ? 0xff66aa : 0x44ddff;
+        const dotColor = isPink ? 0xff4d94 : 0x44ddff;
         const dotAlpha = isPink ? 0.8 : 0.7;
         gfx.fillStyle(dotColor, dotAlpha);
         gfx.fillRect(x - 1, yPos - 2, 3, 3);
@@ -165,7 +165,7 @@ function _drawNeonBarrier(scene, gfx, yPos) {
         onUpdate: (tween) => {
             const val = tween.getValue();
             pulseGfx.clear();
-            pulseGfx.fillStyle(0xff66aa, val);
+            pulseGfx.fillStyle(0xff4d94, val);
             pulseGfx.fillRect(0, yPos - 4, GAME_WIDTH, 8);
         },
     });
