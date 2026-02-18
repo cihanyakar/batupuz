@@ -1167,31 +1167,24 @@ export class BootScene extends Phaser.Scene {
         this.textures.get(`fruit_${gem.tier}`).setFilter(1);
     }
 
-    // ─── BACKGROUND: ANIME INDIGO-TO-PURPLE GRADIENT ───
+    // ─── BACKGROUND: ANIME INDIGO-TO-PURPLE GRADIENT (optimized) ───
     _generateAnimeBackground() {
         const W = 600;
         const H = 780;
         const gfx = this.add.graphics();
-        const p = 1; // pixel block size for background
 
-        // Base gradient: medium indigo at top to soft purple at bottom
-        for (let y = 0; y < H; y += p) {
-            for (let x = 0; x < W; x += p) {
-                const t = y / H; // 0 at top, 1 at bottom
-
-                // Brighter indigo (top) -> soft purple (bottom)
-                const r = Math.floor(0x22 + (0x38 - 0x22) * t);
-                const g = Math.floor(0x14 + (0x18 - 0x14) * t);
-                const b = Math.floor(0x50 + (0x70 - 0x50) * t);
-
-                const color = (r << 16) | (g << 8) | b;
-                this._px(gfx, x, y, p, color);
-            }
+        // Base gradient: row-by-row full-width fills (780 calls vs 468,000)
+        for (let y = 0; y < H; y++) {
+            const t = y / H;
+            const r = Math.floor(0x22 + (0x38 - 0x22) * t);
+            const g = Math.floor(0x14 + (0x18 - 0x14) * t);
+            const b = Math.floor(0x50 + (0x70 - 0x50) * t);
+            gfx.fillStyle((r << 16) | (g << 8) | b, 1);
+            gfx.fillRect(0, y, W, 1);
         }
 
-        // Soft bokeh circles (large, faint, dreamy circles)
+        // Soft bokeh circles - concentric rings for radial fade (~120 calls vs ~200,000)
         const bokehCircles = [
-            // [x, y, radius, color, alpha]
             [100, 200, 60, 0xff4d94, 0.10],
             [480, 150, 80, 0x3dffd4, 0.08],
             [300, 500, 70, 0xff70b0, 0.09],
@@ -1204,24 +1197,19 @@ export class BootScene extends Phaser.Scene {
             [350, 300, 50, 0xff70b0, 0.07],
         ];
         for (const [bx, by, br, bc, ba] of bokehCircles) {
-            for (let py = -br; py <= br; py += p) {
-                for (let px = -br; px <= br; px += p) {
-                    if (px * px + py * py <= br * br) {
-                        const dist = Math.sqrt(px * px + py * py) / br;
-                        const alpha = ba * (1 - dist * dist); // fade toward edges
-                        if (alpha > 0.005) {
-                            const fx = bx + px;
-                            const fy = by + py;
-                            if (fx >= 0 && fx < W && fy >= 0 && fy < H) {
-                                this._px(gfx, fx, fy, p, bc, alpha);
-                            }
-                        }
-                    }
+            const steps = 12;
+            for (let i = steps; i > 0; i--) {
+                const stepR = br * (i / steps);
+                const dist = 1 - (i / steps);
+                const alpha = ba * (1 - dist * dist);
+                if (alpha > 0.005) {
+                    gfx.fillStyle(bc, alpha);
+                    gfx.fillCircle(bx, by, stepR);
                 }
             }
         }
 
-        // Small twinkling stars (white pixel crosses at various positions)
+        // Small twinkling stars
         const stars = [
             [45, 80], [120, 40], [200, 65], [310, 30], [420, 55],
             [530, 70], [80, 160], [250, 140], [370, 130], [490, 180],
@@ -1233,17 +1221,17 @@ export class BootScene extends Phaser.Scene {
             [350, 180], [475, 90], [55, 510], [260, 550], [410, 460],
         ];
         for (const [sx, sy] of stars) {
-            // Random-ish brightness based on position
             const brightness = 0.5 + ((sx * 7 + sy * 13) % 100) / 120;
-            // Cross shape (+)
-            this._px(gfx, sx, sy, p, 0xffffff, brightness);
-            this._px(gfx, sx - p, sy, p, 0xffffff, brightness * 0.4);
-            this._px(gfx, sx + p, sy, p, 0xffffff, brightness * 0.4);
-            this._px(gfx, sx, sy - p, p, 0xffffff, brightness * 0.4);
-            this._px(gfx, sx, sy + p, p, 0xffffff, brightness * 0.4);
+            gfx.fillStyle(0xffffff, brightness);
+            gfx.fillRect(sx, sy, 1, 1);
+            gfx.fillStyle(0xffffff, brightness * 0.4);
+            gfx.fillRect(sx - 1, sy, 1, 1);
+            gfx.fillRect(sx + 1, sy, 1, 1);
+            gfx.fillRect(sx, sy - 1, 1, 1);
+            gfx.fillRect(sx, sy + 1, 1, 1);
         }
 
-        // Scattered sakura petals (small pink 3-4 pixel shapes)
+        // Scattered sakura petals
         const petals = [
             [70, 120], [180, 80], [320, 150], [450, 100], [540, 200],
             [30, 300], [200, 340], [380, 280], [510, 350], [100, 430],
@@ -1251,50 +1239,49 @@ export class BootScene extends Phaser.Scene {
             [370, 640], [490, 590], [150, 700], [340, 730], [470, 710],
             [40, 190], [260, 220], [500, 270], [120, 520], [390, 400],
         ];
-        for (const [px2, py2] of petals) {
-            // Each petal is a small 3-4 pixel diamond/teardrop shape
-            const petalAlpha = 0.2 + ((px2 * 3 + py2 * 11) % 100) / 400;
-            const petalColor = ((px2 + py2) % 3 === 0) ? 0xff70b0 : ((px2 + py2) % 3 === 1) ? 0xff4d94 : 0xcc7aff;
-
-            // Rotation variation based on position
-            const rot = (px2 * 7 + py2 * 3) % 4;
+        for (const [px, py] of petals) {
+            const petalAlpha = 0.2 + ((px * 3 + py * 11) % 100) / 400;
+            const petalColor = ((px + py) % 3 === 0) ? 0xff70b0 : ((px + py) % 3 === 1) ? 0xff4d94 : 0xcc7aff;
+            const rot = (px * 7 + py * 3) % 4;
+            gfx.fillStyle(petalColor, petalAlpha);
+            gfx.fillRect(px, py, 1, 1);
             if (rot === 0) {
-                // Horizontal teardrop
-                this._px(gfx, px2, py2, p, petalColor, petalAlpha);
-                this._px(gfx, px2 + p, py2, p, petalColor, petalAlpha * 0.8);
-                this._px(gfx, px2 - p, py2, p, petalColor, petalAlpha * 0.6);
-                this._px(gfx, px2, py2 - p, p, petalColor, petalAlpha * 0.5);
+                gfx.fillStyle(petalColor, petalAlpha * 0.8);
+                gfx.fillRect(px + 1, py, 1, 1);
+                gfx.fillStyle(petalColor, petalAlpha * 0.6);
+                gfx.fillRect(px - 1, py, 1, 1);
+                gfx.fillStyle(petalColor, petalAlpha * 0.5);
+                gfx.fillRect(px, py - 1, 1, 1);
             } else if (rot === 1) {
-                // Vertical teardrop
-                this._px(gfx, px2, py2, p, petalColor, petalAlpha);
-                this._px(gfx, px2, py2 + p, p, petalColor, petalAlpha * 0.8);
-                this._px(gfx, px2, py2 - p, p, petalColor, petalAlpha * 0.6);
-                this._px(gfx, px2 + p, py2, p, petalColor, petalAlpha * 0.5);
+                gfx.fillStyle(petalColor, petalAlpha * 0.8);
+                gfx.fillRect(px, py + 1, 1, 1);
+                gfx.fillStyle(petalColor, petalAlpha * 0.6);
+                gfx.fillRect(px, py - 1, 1, 1);
+                gfx.fillStyle(petalColor, petalAlpha * 0.5);
+                gfx.fillRect(px + 1, py, 1, 1);
             } else if (rot === 2) {
-                // Diagonal shape
-                this._px(gfx, px2, py2, p, petalColor, petalAlpha);
-                this._px(gfx, px2 + p, py2 + p, p, petalColor, petalAlpha * 0.7);
-                this._px(gfx, px2 - p, py2 - p, p, petalColor, petalAlpha * 0.5);
+                gfx.fillStyle(petalColor, petalAlpha * 0.7);
+                gfx.fillRect(px + 1, py + 1, 1, 1);
+                gfx.fillStyle(petalColor, petalAlpha * 0.5);
+                gfx.fillRect(px - 1, py - 1, 1, 1);
             } else {
-                // Small cluster
-                this._px(gfx, px2, py2, p, petalColor, petalAlpha);
-                this._px(gfx, px2 + p, py2 - p, p, petalColor, petalAlpha * 0.7);
-                this._px(gfx, px2 - p, py2 + p, p, petalColor, petalAlpha * 0.6);
-                this._px(gfx, px2 + p, py2 + p, p, petalColor, petalAlpha * 0.4);
+                gfx.fillStyle(petalColor, petalAlpha * 0.7);
+                gfx.fillRect(px + 1, py - 1, 1, 1);
+                gfx.fillStyle(petalColor, petalAlpha * 0.6);
+                gfx.fillRect(px - 1, py + 1, 1, 1);
+                gfx.fillStyle(petalColor, petalAlpha * 0.4);
+                gfx.fillRect(px + 1, py + 1, 1, 1);
             }
         }
 
-        // Subtle vertical light rays from top center (anime-style light beams)
+        // Subtle vertical light rays - row-by-row fills (~1500 calls vs ~30,000)
         for (let ray = 0; ray < 5; ray++) {
             const rayX = 150 + ray * 80;
             const rayWidth = 20 + ray * 4;
-            for (let y = 0; y < 300; y += p) {
+            for (let y = 0; y < 300; y++) {
                 const alpha = (1 - y / 300) * 0.05;
-                for (let x = rayX - rayWidth / 2; x < rayX + rayWidth / 2; x += p) {
-                    if (x >= 0 && x < W) {
-                        this._px(gfx, x, y, p, 0xcc7aff, alpha);
-                    }
-                }
+                gfx.fillStyle(0xcc7aff, alpha);
+                gfx.fillRect(Math.max(0, rayX - rayWidth / 2), y, rayWidth, 1);
             }
         }
 

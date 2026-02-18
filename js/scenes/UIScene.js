@@ -74,10 +74,24 @@ export class UIScene extends Phaser.Scene {
 
         // ===== Drop guide line (local player) =====
         this.guideLine = this.add.graphics();
-        const localColor = PLAYER_ACCENT_COLORS[this.localPlayerId];
-        this.input.on('pointermove', (pointer) => {
-            this.guideLine.clear();
-            if (this._isGameOver || this._previewLocked) return;
+
+        // ===== Current fruit preview (follows cursor, local player only) =====
+        this._currentTier = null;
+        this._previewSprite = null;
+        this._previewLocked = false;
+        this._previewY = Math.round((68 + PLAY_AREA_TOP) / 2);
+
+        this._setupListeners();
+    }
+
+    update() {
+        const pointer = this.input.activePointer;
+        if (!pointer || this._isGameOver) return;
+
+        // Update guide line
+        this.guideLine.clear();
+        if (!this._previewLocked) {
+            const localColor = PLAYER_ACCENT_COLORS[this.localPlayerId];
             this.guideLine.lineStyle(2, localColor, 0.35);
             this.guideLine.lineBetween(pointer.x, PLAY_AREA_TOP, pointer.x, GAME_HEIGHT);
             this.guideLine.fillStyle(localColor, 0.35);
@@ -86,22 +100,16 @@ export class UIScene extends Phaser.Scene {
                 pointer.x + 4, PLAY_AREA_TOP,
                 pointer.x, PLAY_AREA_TOP + 5
             );
-        });
+        }
 
-        // ===== Current fruit preview (follows cursor, local player only) =====
-        this._currentTier = null;
-        this._previewSprite = null;
-        this._previewLocked = false;
-        const previewY = Math.round((68 + PLAY_AREA_TOP) / 2);
-        this.input.on('pointermove', (pointer) => {
-            if (!this._previewSprite || this._isGameOver || this._previewLocked) return;
+        // Update preview sprite position
+        if (this._previewSprite && !this._previewLocked) {
             const cfg = FRUIT_TIERS[this._currentTier];
-            if (!cfg) return;
-            const clampedX = Phaser.Math.Clamp(pointer.x, cfg.radius, GAME_WIDTH - cfg.radius);
-            this._previewSprite.setPosition(clampedX, previewY);
-        });
-
-        this._setupListeners();
+            if (cfg) {
+                const clampedX = Phaser.Math.Clamp(pointer.x, cfg.radius, GAME_WIDTH - cfg.radius);
+                this._previewSprite.setPosition(clampedX, this._previewY);
+            }
+        }
     }
 
     // ===== Player panel (single-row compact layout) =====
@@ -386,16 +394,21 @@ export class UIScene extends Phaser.Scene {
         const cfg = FRUIT_TIERS[tier];
         if (!cfg) return;
 
-        const previewY = Math.round((68 + PLAY_AREA_TOP) / 2);
-        this._previewSprite = this.add.image(GAME_WIDTH / 2, previewY, `fruit_${tier}`);
+        // Initialize at current pointer position (not center)
+        const pointer = this.input.activePointer;
+        const startX = (pointer && pointer.x > 0)
+            ? Phaser.Math.Clamp(pointer.x, cfg.radius, GAME_WIDTH - cfg.radius)
+            : GAME_WIDTH / 2;
+
+        this._previewSprite = this.add.image(startX, this._previewY, `fruit_${tier}`);
         this._previewSprite.setDisplaySize(cfg.radius * 2, cfg.radius * 2);
         this._previewSprite.setAlpha(0.6);
         this._previewSprite.setDepth(20);
 
-        // Lock preview at center briefly so the player sees the reset
+        // Brief lock so player sees the new gem appear
         this._previewLocked = true;
         this.guideLine.clear();
-        this.time.delayedCall(200, () => { this._previewLocked = false; });
+        this.time.delayedCall(150, () => { this._previewLocked = false; });
     }
 
     // ===== EventBus listeners =====

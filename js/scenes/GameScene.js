@@ -177,13 +177,12 @@ export class GameScene extends Phaser.Scene {
             const mx = (fruitA.body.x + fruitB.body.x) / 2;
             const my = (fruitA.body.y + fruitB.body.y) / 2;
 
-            // Remove from fruitMap
+            // Remove both fruits
             this.fruitMap.delete(fruitA.uid);
             this.fruitMap.delete(fruitB.uid);
-
-            this.fruits = this.fruits.filter(f => f !== fruitA && f !== fruitB);
             fruitA.destroy();
             fruitB.destroy();
+            this.fruits = this.fruits.filter(f => f !== fruitA && f !== fruitB);
             this.mechanics.addScore(MAX_TIER);
 
             // Max merge effects
@@ -372,37 +371,34 @@ export class GameScene extends Phaser.Scene {
             }
         }
 
-        // Remove fruits that HOST no longer has (they were merged/destroyed)
+        // Remove fruits that HOST no longer has (batch to avoid repeated filter)
         const now = Date.now();
+        const toRemove = new Set();
         for (const [uid, fruit] of this.fruitMap) {
             if (!receivedUids.has(uid)) {
-                // Don't remove predicted drops awaiting server confirmation
                 if (uid.startsWith('_p_')) continue;
-                // Don't remove recently spawned fruits (network sync grace period)
                 if (now - fruit.spawnTime < 500) continue;
-                this.fruits = this.fruits.filter(f => f !== fruit);
+                toRemove.add(fruit);
                 fruit.destroy();
                 this.fruitMap.delete(uid);
             }
+        }
+        if (toRemove.size > 0) {
+            this.fruits = this.fruits.filter(f => !toRemove.has(f));
         }
     }
 
     _applyMerge(data) {
         const { uidA, uidB, resultUid, resultTier, x, y, score } = data;
 
-        // Remove the two source fruits
+        // Remove the two source fruits (single filter pass)
         const fruitA = this.fruitMap.get(uidA);
         const fruitB = this.fruitMap.get(uidB);
 
-        if (fruitA) {
-            this.fruits = this.fruits.filter(f => f !== fruitA);
-            fruitA.destroy();
-            this.fruitMap.delete(uidA);
-        }
-        if (fruitB) {
-            this.fruits = this.fruits.filter(f => f !== fruitB);
-            fruitB.destroy();
-            this.fruitMap.delete(uidB);
+        if (fruitA || fruitB) {
+            this.fruits = this.fruits.filter(f => f !== fruitA && f !== fruitB);
+            if (fruitA) { fruitA.destroy(); this.fruitMap.delete(uidA); }
+            if (fruitB) { fruitB.destroy(); this.fruitMap.delete(uidB); }
         }
 
         // Create the result fruit
@@ -430,15 +426,10 @@ export class GameScene extends Phaser.Scene {
         const fruitA = this.fruitMap.get(uidA);
         const fruitB = this.fruitMap.get(uidB);
 
-        if (fruitA) {
-            this.fruits = this.fruits.filter(f => f !== fruitA);
-            fruitA.destroy();
-            this.fruitMap.delete(uidA);
-        }
-        if (fruitB) {
-            this.fruits = this.fruits.filter(f => f !== fruitB);
-            fruitB.destroy();
-            this.fruitMap.delete(uidB);
+        if (fruitA || fruitB) {
+            this.fruits = this.fruits.filter(f => f !== fruitA && f !== fruitB);
+            if (fruitA) { fruitA.destroy(); this.fruitMap.delete(uidA); }
+            if (fruitB) { fruitB.destroy(); this.fruitMap.delete(uidB); }
         }
 
         // Update score from HOST
