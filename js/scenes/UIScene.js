@@ -3,10 +3,10 @@ import { EventBus, Events } from '../mechanics/EventBus.js';
 import { NetworkManager } from '../mechanics/NetworkManager.js';
 import { SoundManager } from '../mechanics/SoundManager.js';
 
-// Anime color palette - vibrant
+// Anime color palette - light
 const COLORS = {
-    darkIndigo: 0x1e1240,
-    midPurple: 0x4a2888,
+    darkIndigo: 0x584898,
+    midPurple: 0x7858b8,
     neonPink: 0xff4d94,
     neonCyan: 0x3dffd4,
     softPink: 0xff70b0,
@@ -63,7 +63,7 @@ export class UIScene extends Phaser.Scene {
             fontFamily: '"Zen Maru Gothic", "Hiragino Sans", sans-serif',
             color: COLORS.textPink,
             fontStyle: 'bold',
-            stroke: '#1e1240',
+            stroke: '#4838a0',
             strokeThickness: 2,
         }).setOrigin(0.5);
 
@@ -132,7 +132,7 @@ export class UIScene extends Phaser.Scene {
                 fontFamily: '"Zen Maru Gothic", "Hiragino Sans", sans-serif',
                 color: COLORS.textWhite,
                 fontStyle: 'bold',
-                stroke: '#1e1240',
+                stroke: '#4838a0',
                 strokeThickness: 2,
             }).setOrigin(0, 0);
 
@@ -226,7 +226,7 @@ export class UIScene extends Phaser.Scene {
                 fontFamily: '"Zen Maru Gothic", "Hiragino Sans", sans-serif',
                 color: COLORS.textWhite,
                 fontStyle: 'bold',
-                stroke: '#1e1240',
+                stroke: '#4838a0',
                 strokeThickness: 2,
             }).setOrigin(1, 0);
 
@@ -526,7 +526,7 @@ export class UIScene extends Phaser.Scene {
             fontFamily: '"Zen Maru Gothic", "Hiragino Sans", sans-serif',
             color: COLORS.textPink,
             fontStyle: 'bold',
-            stroke: '#1e1240',
+            stroke: '#4838a0',
             strokeThickness: 3,
             shadow: { offsetX: 0, offsetY: 0, color: '#ff4d94', blur: 10, fill: true },
         }).setOrigin(0.5);
@@ -555,7 +555,7 @@ export class UIScene extends Phaser.Scene {
             fontFamily: '"Zen Maru Gothic", "Hiragino Sans", sans-serif',
             color: COLORS.textCyan,
             fontStyle: 'bold',
-            stroke: '#1e1240',
+            stroke: '#4838a0',
             strokeThickness: 2,
             shadow: { offsetX: 0, offsetY: 0, color: '#3dffd4', blur: 6, fill: true },
         }).setOrigin(0.5, 0);
@@ -582,7 +582,7 @@ export class UIScene extends Phaser.Scene {
             fontFamily: '"Zen Maru Gothic", "Hiragino Sans", sans-serif',
             color: COLORS.textWhite,
             fontStyle: 'bold',
-            stroke: '#4a2888',
+            stroke: '#6850a8',
             strokeThickness: 2,
         }).setOrigin(0.5);
 

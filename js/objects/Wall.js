@@ -1,11 +1,11 @@
 import { GAME_WIDTH, GAME_HEIGHT, PLAY_AREA_TOP } from '../mechanics/FruitConfig.js';
 
-// Anime color palette - brighter
-const DARK_PURPLE  = 0x3a1860;
-const MID_PURPLE   = 0x502888;
-const LIGHT_PURPLE = 0x7040a8;
+// Anime color palette - light
+const DARK_PURPLE  = 0x6848a0;
+const MID_PURPLE   = 0x7858b8;
+const LIGHT_PURPLE = 0x9070c8;
 const NEON_PINK    = 0xff4d94;
-const FLOOR_INDIGO = 0x221248;
+const FLOOR_INDIGO = 0x584898;
 
 export function createWalls(scene) {
     const T = 24; // wall thickness
@@ -50,9 +50,9 @@ function _drawAnimeWall(gfx, x, y, width, height, side) {
     for (let i = 0; i < steps; i++) {
         // Interpolate from dark purple to lighter purple
         const t = i / (steps - 1);
-        const r = Math.floor(0x3a + (0x70 - 0x3a) * t);
-        const g = Math.floor(0x18 + (0x40 - 0x18) * t);
-        const b = Math.floor(0x60 + (0xa8 - 0x60) * t);
+        const r = Math.floor(0x68 + (0x90 - 0x68) * t);
+        const g = Math.floor(0x48 + (0x70 - 0x48) * t);
+        const b = Math.floor(0xa0 + (0xc8 - 0xa0) * t);
         const color = (r << 16) | (g << 8) | b;
 
         if (side === 'left') {

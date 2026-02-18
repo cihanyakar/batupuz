@@ -46,28 +46,27 @@ export class Fruit {
         this.spawnTime = Date.now();
     }
 
-    // Switch to static body so local physics doesn't fight HOST interpolation
+    // Switch to static sensor so local physics doesn't fight HOST interpolation
     makeStaticForSync() {
         if (!this._isStaticSync && this.body && this.body.body) {
             this.body.setStatic(true);
+            // Sensor = no physical collision response, prevents weird bouncing
+            this.body.body.isSensor = true;
             this._isStaticSync = true;
         }
     }
 
     setInterpolationTarget(x, y, angle) {
-        // Guard against NaN/Infinity
         if (!isFinite(x) || !isFinite(y) || !isFinite(angle)) return;
 
-        // Grace period: let recently spawned fruits fall naturally with physics
-        // before switching to static for HOST-driven interpolation
         if (Date.now() - this.spawnTime > 800) {
             this.makeStaticForSync();
         }
 
-        // Track previous target for velocity estimation
-        if (this._interpTarget) {
-            this._interpPrev = { x: this._interpTarget.x, y: this._interpTarget.y };
-        }
+        // Store previous position for smooth interpolation between targets
+        this._interpPrev = this._interpTarget
+            ? { x: this._interpTarget.x, y: this._interpTarget.y, angle: this._interpTarget.angle }
+            : { x, y, angle };
         this._interpTarget = { x, y, angle };
         this._interpTime = 0;
     }
@@ -80,36 +79,24 @@ export class Fruit {
             if (Date.now() - this.spawnTime > 800) {
                 this.makeStaticForSync();
             } else {
-                return; // Still falling, skip interpolation
+                return;
             }
         }
 
-        const t = this._interpTarget;
-
-        // Accumulate time since last target update
+        // Smoothly interpolate between previous and current target over 200ms
         this._interpTime = (this._interpTime || 0) + delta;
+        const t = Math.min(1, this._interpTime / 200);
 
-        // Lerp factor: converge within ~200ms (matching world state interval)
-        const lerpSpeed = Math.min(1, (delta / 1000) * 8);
+        const prev = this._interpPrev || this._interpTarget;
+        const nx = prev.x + (this._interpTarget.x - prev.x) * t;
+        const ny = prev.y + (this._interpTarget.y - prev.y) * t;
+        const na = prev.angle + (this._interpTarget.angle - prev.angle) * t;
 
-        const bx = this.body.x;
-        const by = this.body.y;
-        const dx = t.x - bx;
-        const dy = t.y - by;
-
-        // Adaptive speed: faster when far from target, smoother when close
-        const dist = Math.sqrt(dx * dx + dy * dy);
-        const adaptiveLerp = dist > 20 ? Math.min(1, lerpSpeed * 2) : lerpSpeed;
-
-        const nx = bx + dx * adaptiveLerp;
-        const ny = by + dy * adaptiveLerp;
-        if (!isFinite(nx) || !isFinite(ny)) return;
-        this.body.setPosition(nx, ny);
-
-        const currentAngle = this.body.angle;
-        const newAngle = currentAngle + (t.angle - currentAngle) * lerpSpeed;
-        if (isFinite(newAngle)) {
-            this.body.setAngle(newAngle);
+        if (isFinite(nx) && isFinite(ny)) {
+            this.body.setPosition(nx, ny);
+        }
+        if (isFinite(na)) {
+            this.body.setAngle(na);
         }
     }
 

@@ -5,8 +5,8 @@ import { SoundManager } from '../mechanics/SoundManager.js';
 
 // Anime vibrant color palette
 const COLORS = {
-    darkIndigo: 0x1e1240,
-    midPurple: 0x4a2888,
+    darkIndigo: 0x584898,
+    midPurple: 0x7858b8,
     neonPink: 0xff4d94,
     neonCyan: 0x3dffd4,
     softPink: 0xff70b0,
@@ -32,7 +32,7 @@ export class LobbyScene extends Phaser.Scene {
         const cx = GAME_WIDTH / 2;
 
         // Dark indigo background
-        this.cameras.main.setBackgroundColor('#1e1240');
+        this.cameras.main.setBackgroundColor('#584898');
 
         // Draw starry background pattern
         this._drawBackground();
@@ -59,7 +59,7 @@ export class LobbyScene extends Phaser.Scene {
             fontFamily: '"Zen Maru Gothic", "Hiragino Sans", sans-serif',
             color: COLORS.textPink,
             fontStyle: 'bold',
-            stroke: '#4a2888',
+            stroke: '#6850a8',
             strokeThickness: 4,
             shadow: {
                 offsetX: 0,
@@ -107,7 +107,7 @@ export class LobbyScene extends Phaser.Scene {
             fontFamily: '"Zen Maru Gothic", "Hiragino Sans", sans-serif',
             color: COLORS.textCyan,
             fontStyle: 'bold',
-            stroke: '#1e1240',
+            stroke: '#584898',
             strokeThickness: 3,
             shadow: {
                 offsetX: 0,
@@ -306,7 +306,7 @@ export class LobbyScene extends Phaser.Scene {
     _drawBackground() {
         const g = this.add.graphics();
         // Dark indigo base fill
-        g.fillStyle(0x1e1240, 1);
+        g.fillStyle(0x584898, 1);
         g.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
 
         // Subtle star dots pattern
@@ -500,7 +500,7 @@ export class LobbyScene extends Phaser.Scene {
             fontFamily: '"Zen Maru Gothic", "Hiragino Sans", sans-serif',
             color: COLORS.textWhite,
             fontStyle: 'bold',
-            stroke: '#4a2888',
+            stroke: '#6850a8',
             strokeThickness: 2,
         }).setOrigin(0.5);
 

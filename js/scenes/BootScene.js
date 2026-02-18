@@ -1173,12 +1173,12 @@ export class BootScene extends Phaser.Scene {
         const H = 780;
         const gfx = this.add.graphics();
 
-        // Base gradient: row-by-row full-width fills (780 calls vs 468,000)
+        // Base gradient: soft lavender top to muted purple bottom
         for (let y = 0; y < H; y++) {
             const t = y / H;
-            const r = Math.floor(0x22 + (0x38 - 0x22) * t);
-            const g = Math.floor(0x14 + (0x18 - 0x14) * t);
-            const b = Math.floor(0x50 + (0x70 - 0x50) * t);
+            const r = Math.floor(0x68 + (0x52 - 0x68) * t);
+            const g = Math.floor(0x58 + (0x40 - 0x58) * t);
+            const b = Math.floor(0xa8 + (0x90 - 0xa8) * t);
             gfx.fillStyle((r << 16) | (g << 8) | b, 1);
             gfx.fillRect(0, y, W, 1);
         }
