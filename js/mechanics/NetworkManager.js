@@ -69,7 +69,7 @@ class _NetworkManager {
 
     sendWorldState(data) {
         if (!this.isHost) return;
-        this.send({ type: 'worldState', ...data });
+        this.send({ type: 'worldState', b: data.b, score: data.score });
     }
 
     sendMerge(data) {

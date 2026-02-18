@@ -43,6 +43,28 @@ export function createWalls(scene) {
     _drawNeonBarrier(scene, dangerGfx, PLAY_AREA_TOP);
 }
 
+/**
+ * GUEST version: draws all visual walls but skips Matter.js physics bodies.
+ */
+export function createWallsVisualOnly(scene) {
+    const T = 24;
+
+    const gfx = scene.add.graphics();
+
+    // Left wall
+    _drawAnimeWall(gfx, -T, PLAY_AREA_TOP, T, GAME_HEIGHT - PLAY_AREA_TOP, 'left');
+
+    // Right wall
+    _drawAnimeWall(gfx, GAME_WIDTH, PLAY_AREA_TOP, T, GAME_HEIGHT - PLAY_AREA_TOP, 'right');
+
+    // Floor
+    _drawAnimeFloor(gfx, 0, GAME_HEIGHT - T, GAME_WIDTH, T);
+
+    // Neon barrier
+    const dangerGfx = scene.add.graphics();
+    _drawNeonBarrier(scene, dangerGfx, PLAY_AREA_TOP);
+}
+
 function _drawAnimeWall(gfx, x, y, width, height, side) {
     // Gradient purple fill from dark to lighter
     const steps = 8;

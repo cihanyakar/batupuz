@@ -4,9 +4,11 @@ import { GameMechanics } from '../mechanics/GameMechanics.js';
 import { NetworkManager } from '../mechanics/NetworkManager.js';
 import { Fruit } from '../objects/Fruit.js';
 import { createWalls } from '../objects/Wall.js';
+import { createWallsVisualOnly } from '../objects/Wall.js';
 import { SoundManager } from '../mechanics/SoundManager.js';
 
 const PLAYER_COLORS = [0xff4d94, 0x3dffd4]; // P1: pink, P2: cyan
+const SNAPSHOT_INTERVAL = 33; // 30fps network sync
 
 export class GameScene extends Phaser.Scene {
     constructor() {
@@ -23,6 +25,8 @@ export class GameScene extends Phaser.Scene {
         this._nextMergeUid = 0;
         this._pendingDrop = null; // uid of locally predicted drop
         this._pendingDropTimeout = null;
+        this._physicsAccumulator = 0;
+        this._lastSnapshotSeq = 0;
 
         // Initialize sound
         SoundManager.init();
@@ -47,9 +51,16 @@ export class GameScene extends Phaser.Scene {
             this.add.image(GAME_WIDTH / 2, GAME_HEIGHT / 2, 'bg_parchment').setDepth(-1);
         }
 
-        createWalls(this);
+        if (this.isHost) {
+            // HOST: physics walls + collision handler
+            createWalls(this);
+            this._setupCollisionHandler();
+        } else {
+            // GUEST: visual-only walls, no collision handler
+            createWallsVisualOnly(this);
+        }
+
         this._setupInput();
-        this._setupCollisionHandler();
         this._setupNetworkListeners();
 
         // Remote player cursor
@@ -70,20 +81,31 @@ export class GameScene extends Phaser.Scene {
         SoundManager.play('gameStart');
     }
 
-    update(time) {
-        for (let i = 0; i < this.fruits.length; i++) {
-            this.fruits[i].updateShadow();
-        }
-        this._checkGameOver(time);
-
-        const delta = this.game.loop.delta;
-
+    update(time, delta) {
         if (this.isHost) {
-            // HOST: broadcast world state periodically
+            // HOST: Fixed timestep physics (60 steps/sec)
+            const FIXED_STEP = 1000 / 60;
+            this._physicsAccumulator += delta;
+            if (this._physicsAccumulator > FIXED_STEP * 5) {
+                this._physicsAccumulator = FIXED_STEP * 5;
+            }
+            while (this._physicsAccumulator >= FIXED_STEP) {
+                this.matter.world.step(FIXED_STEP);
+                this._physicsAccumulator -= FIXED_STEP;
+            }
+
+            this._checkGameOver(time);
             this._sendWorldStateIfNeeded(delta);
         } else {
-            // GUEST: interpolate fruit positions toward HOST targets
-            this._applyInterpolations(delta);
+            // GUEST: snapshot interpolation, NO physics step
+            for (const fruit of this.fruits) {
+                fruit.interpolate(SNAPSHOT_INTERVAL);
+            }
+        }
+
+        // Both: update shadows
+        for (let i = 0; i < this.fruits.length; i++) {
+            this.fruits[i].updateShadow();
         }
     }
 
@@ -106,9 +128,8 @@ export class GameScene extends Phaser.Scene {
         // Drop on click OUTSIDE canvas - clamp to nearest edge
         this._windowClickHandler = (e) => {
             const canvas = this.game.canvas;
-            if (e.target === canvas) return; // already handled by Phaser
+            if (e.target === canvas) return;
             const rect = canvas.getBoundingClientRect();
-            // Only handle clicks that are vertically within game area
             if (e.clientY < rect.top || e.clientY > rect.bottom) return;
             const gameX = e.clientX < rect.left + rect.width / 2 ? 0 : GAME_WIDTH;
             this._doDrop(gameX);
@@ -122,7 +143,7 @@ export class GameScene extends Phaser.Scene {
 
         NetworkManager.sendDrop(x);
 
-        // Client prediction: spawn gem immediately for local player
+        // Client prediction: spawn fruit immediately for local player
         const player = this.mechanics.getPlayer(this.localPlayerId);
         if (player) {
             const tier = player.currentTier;
@@ -130,9 +151,9 @@ export class GameScene extends Phaser.Scene {
             this._spawnFruit(this.localPlayerId, tier, x, pendingUid);
             this._pendingDrop = pendingUid;
 
-            // Timeout: if server doesn't confirm within 600ms, remove predicted fruit
+            // Timeout: if server doesn't confirm within 800ms, remove predicted fruit
             if (this._pendingDropTimeout) this._pendingDropTimeout.remove();
-            this._pendingDropTimeout = this.time.delayedCall(600, () => {
+            this._pendingDropTimeout = this.time.delayedCall(800, () => {
                 if (this._pendingDrop) {
                     const fruit = this.fruitMap.get(this._pendingDrop);
                     if (fruit) {
@@ -148,9 +169,6 @@ export class GameScene extends Phaser.Scene {
 
     _setupCollisionHandler() {
         this.matter.world.on('collisionstart', (event) => {
-            // GUEST skips collision handling entirely - HOST is authoritative
-            if (!this.isHost) return;
-
             for (let i = 0; i < event.pairs.length; i++) {
                 const { bodyA, bodyB } = event.pairs[i];
                 this._handleCollision(bodyA, bodyB);
@@ -177,7 +195,6 @@ export class GameScene extends Phaser.Scene {
             const mx = (fruitA.body.x + fruitB.body.x) / 2;
             const my = (fruitA.body.y + fruitB.body.y) / 2;
 
-            // Remove both fruits
             this.fruitMap.delete(fruitA.uid);
             this.fruitMap.delete(fruitB.uid);
             fruitA.destroy();
@@ -185,13 +202,11 @@ export class GameScene extends Phaser.Scene {
             this.fruits = this.fruits.filter(f => f !== fruitA && f !== fruitB);
             this.mechanics.addScore(MAX_TIER);
 
-            // Max merge effects
             this._emitMergeParticles(mx, my, FRUIT_TIERS[MAX_TIER].color, FRUIT_TIERS[MAX_TIER].radius);
             this._showFloatingScore(mx, my, FRUIT_TIERS[MAX_TIER].points);
             this._shakeCamera();
             SoundManager.play('maxMerge');
 
-            // HOST sends destroy to GUEST
             NetworkManager.sendDestroy({
                 uidA: fruitA.uid,
                 uidB: fruitB.uid,
@@ -218,7 +233,6 @@ export class GameScene extends Phaser.Scene {
         const mx = (fruitA.body.x + fruitB.body.x) / 2;
         const my = (fruitA.body.y + fruitB.body.y) / 2;
 
-        // Remove from fruitMap before destroying
         this.fruitMap.delete(fruitA.uid);
         this.fruitMap.delete(fruitB.uid);
 
@@ -226,6 +240,7 @@ export class GameScene extends Phaser.Scene {
         fruitA.destroy();
         fruitB.destroy();
 
+        // HOST: spawn physics fruit
         const newFruit = new Fruit(this, mx, my, resultTier);
         newFruit.uid = resultUid;
         newFruit.body.setVelocity(0, -2);
@@ -234,7 +249,6 @@ export class GameScene extends Phaser.Scene {
 
         this.mechanics.addScore(resultTier);
 
-        // HOST sends merge to GUEST
         NetworkManager.sendMerge({
             uidA: fruitA.uid,
             uidB: fruitB.uid,
@@ -245,7 +259,6 @@ export class GameScene extends Phaser.Scene {
             score: this.mechanics.score,
         });
 
-        // Merge visual effects
         this._emitMergeParticles(mx, my, FRUIT_TIERS[resultTier].color, FRUIT_TIERS[resultTier].radius);
         this._showFloatingScore(mx, my, FRUIT_TIERS[resultTier].points);
         this._shakeCamera();
@@ -265,8 +278,9 @@ export class GameScene extends Phaser.Scene {
     }
 
     _spawnFruit(playerId, tier, x, uid) {
+        const visualOnly = !this.isHost;
         const dropData = this.mechanics.applyDrop(playerId, tier, x);
-        const fruit = new Fruit(this, dropData.x, dropData.y, dropData.tier, playerId);
+        const fruit = new Fruit(this, dropData.x, dropData.y, dropData.tier, playerId, visualOnly);
         fruit.uid = uid;
         this.fruits.push(fruit);
         if (uid) {
@@ -274,17 +288,11 @@ export class GameScene extends Phaser.Scene {
         }
         EventBus.emit(Events.FRUIT_DROPPED, dropData);
 
-        // Drop sound
         SoundManager.play('drop');
-
-        // Drop trail effect: brief falling line from spawn point
         this._showDropTrail(dropData.x, dropData.y, FRUIT_TIERS[tier].color);
     }
 
     _checkGameOver(time) {
-        // Only HOST checks game over
-        if (!this.isHost) return;
-
         if (time - this.lastGameOverCheck < 500) return;
         this.lastGameOverCheck = time;
         if (this.mechanics.isGameOver) return;
@@ -311,17 +319,16 @@ export class GameScene extends Phaser.Scene {
         }
     }
 
-    // ---- HOST: World State Broadcasting ----
+    // ---- HOST: World State Broadcasting (30fps) ----
 
     _sendWorldStateIfNeeded(delta) {
         this._worldStateTimer += delta;
-        if (this._worldStateTimer < 200) return; // every 200ms (was 100ms)
+        if (this._worldStateTimer < SNAPSHOT_INTERVAL) return;
         this._worldStateTimer = 0;
 
         const bodies = [];
         for (const [uid, fruit] of this.fruitMap) {
             if (!fruit.body || !fruit.body.body) continue;
-            // Use shorter keys and round values to reduce payload
             bodies.push({
                 u: uid,
                 t: fruit.tier,
@@ -331,22 +338,24 @@ export class GameScene extends Phaser.Scene {
             });
         }
         if (bodies.length > 0) {
-            NetworkManager.sendWorldState({ b: bodies });
-        }
-    }
-
-    // ---- GUEST: Interpolation ----
-
-    _applyInterpolations(delta) {
-        for (const fruit of this.fruits) {
-            fruit.applyInterpolation(delta);
+            NetworkManager.sendWorldState({ b: bodies, score: this.mechanics.score });
         }
     }
 
     // ---- GUEST: Apply HOST-authoritative state ----
 
     _applyWorldState(data) {
-        // Support both formats: {b:[...]} (optimized) and {bodies:[...]} (legacy)
+        // Sequence check: drop out-of-order packets
+        if (data.seq !== undefined) {
+            if (data.seq <= this._lastSnapshotSeq) return;
+            this._lastSnapshotSeq = data.seq;
+        }
+
+        // Sync score from HOST
+        if (data.score !== undefined) {
+            this.mechanics.setScore(data.score);
+        }
+
         const bodies = data.b || data.bodies;
         if (!bodies || !Array.isArray(bodies)) return;
 
@@ -355,29 +364,33 @@ export class GameScene extends Phaser.Scene {
         for (const b of bodies) {
             const uid = b.u || b.uid;
             receivedUids.add(uid);
+            const angle = b.a !== undefined ? b.a : (b.angle || 0);
             const fruit = this.fruitMap.get(uid);
             if (fruit) {
-                fruit.setInterpolationTarget(b.x, b.y, b.a !== undefined ? b.a : b.angle);
+                // Existing fruit: feed snapshot for interpolation
+                fruit.receiveSnapshot(b.x, b.y, angle);
             } else {
-                // Fruit exists on HOST but not locally - create it (missed drop event)
+                // New fruit from HOST: create visual-only + initialize snapshot
                 const tier = b.t;
                 if (tier !== undefined) {
-                    const newFruit = new Fruit(this, b.x, b.y, tier);
+                    const newFruit = new Fruit(this, b.x, b.y, tier, undefined, true);
                     newFruit.uid = uid;
-                    newFruit.makeStaticForSync(); // no local physics, HOST drives position
+                    newFruit.receiveSnapshot(b.x, b.y, angle);
                     this.fruits.push(newFruit);
                     this.fruitMap.set(uid, newFruit);
                 }
             }
         }
 
-        // Remove fruits that HOST no longer has (batch to avoid repeated filter)
+        // Remove fruits that HOST no longer has
         const now = Date.now();
         const toRemove = new Set();
         for (const [uid, fruit] of this.fruitMap) {
             if (!receivedUids.has(uid)) {
+                // Keep predicted drops (prefix _p_)
                 if (uid.startsWith('_p_')) continue;
-                if (now - fruit.spawnTime < 500) continue;
+                // Grace period: 200ms for recently spawned fruits
+                if (now - fruit.spawnTime < 200) continue;
                 toRemove.add(fruit);
                 fruit.destroy();
                 this.fruitMap.delete(uid);
@@ -391,7 +404,7 @@ export class GameScene extends Phaser.Scene {
     _applyMerge(data) {
         const { uidA, uidB, resultUid, resultTier, x, y, score } = data;
 
-        // Remove the two source fruits (single filter pass)
+        // Remove the two source fruits
         const fruitA = this.fruitMap.get(uidA);
         const fruitB = this.fruitMap.get(uidB);
 
@@ -401,10 +414,10 @@ export class GameScene extends Phaser.Scene {
             if (fruitB) { fruitB.destroy(); this.fruitMap.delete(uidB); }
         }
 
-        // Create the result fruit
-        const newFruit = new Fruit(this, x, y, resultTier);
+        // GUEST: create visual-only result fruit
+        const newFruit = new Fruit(this, x, y, resultTier, undefined, true);
         newFruit.uid = resultUid;
-        newFruit.body.setVelocity(0, -2);
+        newFruit.receiveSnapshot(x, y, 0);
         this.fruits.push(newFruit);
         this.fruitMap.set(resultUid, newFruit);
 
@@ -432,10 +445,8 @@ export class GameScene extends Phaser.Scene {
             if (fruitB) { fruitB.destroy(); this.fruitMap.delete(uidB); }
         }
 
-        // Update score from HOST
         this.mechanics.setScore(score);
 
-        // Visual effects
         this._emitMergeParticles(x, y, FRUIT_TIERS[MAX_TIER].color, FRUIT_TIERS[MAX_TIER].radius);
         this._showFloatingScore(x, y, FRUIT_TIERS[MAX_TIER].points);
         this._shakeCamera();
@@ -511,7 +522,6 @@ export class GameScene extends Phaser.Scene {
 
     _shakeCamera() {
         this.cameras.main.shake(50, 0.005);
-        // Haptic feedback on mobile
         if (navigator.vibrate) navigator.vibrate(30);
     }
 
@@ -520,7 +530,6 @@ export class GameScene extends Phaser.Scene {
         const trail = this.add.graphics();
         trail.setDepth(0);
 
-        // Draw a fading vertical line above the spawn point
         const steps = 8;
         for (let i = 0; i < steps; i++) {
             const alpha = 0.3 * (1 - i / steps);
@@ -530,7 +539,6 @@ export class GameScene extends Phaser.Scene {
             trail.fillRect(x - 2, segY - segH, 4, segH);
         }
 
-        // Fade out the trail
         this.tweens.add({
             targets: trail,
             alpha: 0,
@@ -554,8 +562,11 @@ export class GameScene extends Phaser.Scene {
                     this.fruitMap.delete(this._pendingDrop);
                     predicted.uid = uid;
                     this.fruitMap.set(uid, predicted);
+                    // GUEST: initialize snapshot so interpolation starts from current pos
+                    if (!this.isHost && predicted.body) {
+                        predicted.receiveSnapshot(predicted.body.x, predicted.body.y, 0);
+                    }
                 } else {
-                    // Predicted fruit was lost (e.g. world state cleanup) - respawn
                     this._spawnFruit(playerId, tier, x, uid);
                 }
                 this._pendingDrop = null;
@@ -564,14 +575,12 @@ export class GameScene extends Phaser.Scene {
                     this._pendingDropTimeout = null;
                 }
             } else if (playerId !== this.localPlayerId) {
-                // Other player's drop - spawn normally
                 this._spawnFruit(playerId, tier, x, uid);
             }
         });
 
         // Auto-drop (timer expired)
         EventBus.on(Events.NET_AUTO_DROP, ({ playerId, tier, x, uid }) => {
-            // If local player was auto-dropped while having a pending prediction, clean up
             if (playerId === this.localPlayerId && this._pendingDrop) {
                 const predicted = this.fruitMap.get(this._pendingDrop);
                 if (predicted) {
@@ -620,6 +629,7 @@ export class GameScene extends Phaser.Scene {
             this.remoteCursor.clear();
             this._nextMergeUid = 0;
             this._worldStateTimer = 0;
+            this._lastSnapshotSeq = 0;
             this.mechanics.reset(players);
 
             for (const p of players) {
@@ -640,7 +650,7 @@ export class GameScene extends Phaser.Scene {
 
         // World state from HOST (GUEST only)
         EventBus.on(Events.NET_WORLD_STATE, (data) => {
-            if (this.isHost) return; // HOST ignores
+            if (this.isHost) return;
             this._applyWorldState(data);
         });
 

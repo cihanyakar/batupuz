@@ -20,6 +20,7 @@ const config = {
         matter: {
             gravity: { y: 1.5 },
             debug: false,
+            autoUpdate: false,
         }
     },
     scene: [BootScene, LobbyScene, GameScene, UIScene],

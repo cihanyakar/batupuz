@@ -30,6 +30,7 @@ class Room {
         this.started = false;
         this.gameOver = false;
         this.nextFruitId = 0;
+        this.stateSeq = 0;
         this.hostId = 0;
     }
 
@@ -207,8 +208,9 @@ class Room {
         if (player.id !== this.hostId) return;
 
         // Relay to all OTHER players (not back to HOST)
-        // Pass through the optimized format as-is
-        const data = { type: 'worldState', b: msg.b || msg.bodies };
+        // Pass through the optimized format as-is, add seq for ordering
+        const seq = ++this.stateSeq;
+        const data = { type: 'worldState', b: msg.b || msg.bodies, seq, score: msg.score };
         for (const p of this.players) {
             if (p !== player && p.ws.readyState === 1) {
                 this.send(p.ws, data);
